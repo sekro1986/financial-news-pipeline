@@ -17,6 +17,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .config import settings
+
 # (poids, type_evenement, motif_regex, libellé)
 # Ordonné par poids décroissant pour que le type retenu soit le plus significatif.
 RULES: list[tuple[int, str, str, str]] = [
@@ -103,6 +105,15 @@ def classify(text: str) -> Classification:
             if weight > best_weight:
                 best_weight = weight
                 best_type = event_type
+
+    # Resserrage du bucket "generic" : si AUCUNE regle specifique n'a fire
+    # (le type dominant reste 'generic'), on plafonne le score sous le seuil
+    # d'alerte. Empile autant de synonymes generiques qu'on veut ('takeover' +
+    # 'merger' + 'acquisition' + 'bid'...), ca ne franchira jamais le seuil :
+    # un article qui parle de M&A en general n'est pas un deal precis.
+    if best_type == "generic" and total > settings.generic_score_cap:
+        total = settings.generic_score_cap
+        matched.append("[~] generic plafonne (pas d'ancre de deal)")
 
     # Penalite contexte dette (notes/obligations) -> evite les faux positifs tender offer
     if total > 0 and _DEBT_NOUN.search(text) and _DEBT_CTX.search(text):

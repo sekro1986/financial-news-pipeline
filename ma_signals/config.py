@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     # --- Seuil de score pour déclencher une alerte ---
     alert_min_score: int = 8
 
+    # --- Resserrage du bruit "generic" ---
+    # Score maximal d'un item purement generique (aucune ancre de deal precise).
+    # Doit rester < alert_min_score pour qu'un empilement de synonymes
+    # ('takeover' + 'merger' + 'acquisition'...) n'alerte jamais seul.
+    generic_score_cap: int = 5
+
+    # --- Dedup au niveau "histoire" (cross-source) ---
+    # Regroupe le meme deal republie par plusieurs medias dans cette fenetre.
+    story_dedup: bool = True
+    story_window_hours: int = 48
+
     # --- Garde-fous anti-spam ---
     max_alerts_per_cycle: int = 25
     alert_batch_size: int = 8

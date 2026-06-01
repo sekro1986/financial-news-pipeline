@@ -56,3 +56,18 @@ def test_agrees_to_acquire_variants():
               "Company plans to acquire rival"]:
         c = classify(t)
         assert c.score >= 6, (t, c.score)
+
+
+def test_generic_stack_is_capped_below_alert():
+    # Empilement de synonymes generiques, sans aucune ancre de deal precise :
+    # doit etre plafonne sous le seuil d'alerte (pas un vrai deal).
+    c = classify("Takeover and merger buzz: acquisition and bid chatter rises across the market")
+    assert c.event_type == "generic"
+    assert c.score <= 5, (c.score, c.matched)
+
+
+def test_specific_deal_not_capped():
+    # Une vraie ancre ('to acquire') ne doit PAS etre plafonnee par le cap generic.
+    c = classify("Spectris agrees to acquire Micromeritics in cash deal")
+    assert c.event_type == "merger_agt"
+    assert c.score >= 8

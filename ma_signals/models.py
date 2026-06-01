@@ -28,6 +28,10 @@ class Signal(Base):
     # Clé de déduplication (hash source+id natif) : empêche les doublons.
     dedup_key: Mapped[str] = mapped_column(String(64), index=True)
 
+    # Cle de regroupement "histoire" (societe+type ou empreinte titre+type) :
+    # fusionne le meme deal republie par plusieurs medias. Voir dedup.story_key().
+    story_key: Mapped[str] = mapped_column(String(128), index=True, default="")
+
     source: Mapped[str] = mapped_column(String(32), index=True)      # sec_edgar, rns_uk, ...
     event_type: Mapped[str] = mapped_column(String(48), index=True)  # possible_offer, stake_13d, ...
     company: Mapped[str] = mapped_column(String(256), index=True, default="")
@@ -49,6 +53,7 @@ class Signal(Base):
         return {
             "id": self.id,
             "source": self.source,
+            "story_key": self.story_key,
             "event_type": self.event_type,
             "company": self.company,
             "title": self.title,
