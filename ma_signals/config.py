@@ -1,6 +1,8 @@
 """Configuration centralisée, chargée depuis les variables d'environnement (.env)."""
 from __future__ import annotations
 
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,9 +44,12 @@ class Settings(BaseSettings):
     )
 
     # --- Flux RSS personnalisés (rss.app : X/Twitter, blogs, newsletters) ---
-    # URLs séparées par des virgules ou des retours à la ligne.
+    # Deux sources cumulatives :
+    #   1) le fichier dédié rss_custom_feeds_file (recommandé, 1 URL par ligne)
+    #   2) la variable rss_custom_feeds (CSV, optionnelle)
+    rss_custom_feeds_file: str = "feeds.txt"
     rss_custom_feeds: str = ""
-    # Bonus de score pour ces sources curées (elles sont fiables / triées à la main).
+    # Bonus de score pour ces sources curées (fiables / triées à la main).
     curated_score_bonus: int = 2
 
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
@@ -60,8 +65,36 @@ class Settings(BaseSettings):
 
     @property
     def rss_custom_feed_list(self) -> list[str]:
+        """Fusionne les URLs du fichier dédié et de la variable d'env (dédupliquées,
+        ordre préservé). Dans le fichier : 1 URL par ligne, lignes vides et lignes
+        commençant par # ignorées, commentaire en fin de ligne autorisé."""
+        urls: list[str] = []
+
+        # 1) variable d'environnement (CSV)
         raw = self.rss_custom_feeds.replace("\n", ",")
-        return [u.strip() for u in raw.split(",") if u.strip()]
+        urls += [u.strip() for u in raw.split(",") if u.strip()]
+
+        # 2) fichier dédié
+        path = self.rss_custom_feeds_file
+        if path and os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    for line in fh:
+                        s = line.strip()
+                        if not s or s.startswith("#"):
+                            continue
+                        urls.append(s.split()[0])  # 1er token = URL (commentaire en fin OK)
+            except OSError:
+                pass
+
+        # dédup en conservant l'ordre
+        seen: set[str] = set()
+        out: list[str] = []
+        for u in urls:
+            if u not in seen:
+                seen.add(u)
+                out.append(u)
+        return out
 
     @property
     def watchlist_list(self) -> list[str]:

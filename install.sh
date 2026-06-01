@@ -14,6 +14,9 @@ else
   echo "    .env déjà présent, conservé."
 fi
 
+# feeds.txt personnel
+if [[ ! -f feeds.txt ]]; then cp feeds.txt.example feeds.txt; echo "    feeds.txt cree depuis l example."; fi
+
 # 2) Docker présent ?
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   echo "==> Docker détecté. Build & démarrage des services..."

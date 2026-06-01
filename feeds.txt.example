@@ -1,0 +1,20 @@
+# ====================================================================
+# MA-Signals - flux RSS personnalisés (collecteur rss_custom)
+# Un flux par ligne. Lignes vides et lignes commençant par # ignorées.
+# Commentaire en fin de ligne autorisé (après l'URL).
+# Après édition :  sudo systemctl restart masignals-poller
+# ====================================================================
+
+# --- RSS natifs : scoops & M&A UK ---
+https://feeds.skynews.com/feeds/rss/business.xml      # Sky News Business (scoops Mark Kleinman)
+https://www.betaville.co.uk/rss.xml                   # Betaville (spéculation M&A ; teasers en gratuit)
+https://www.ft.com/companies?format=rss               # FT Companies (corporate/deals)
+https://www.cityam.com/feed/                          # City AM (business UK)
+
+# --- rss.app : comptes X / newsletters ---
+https://rss.app/feeds/3n81q4phan2p0f8j.xml            # X : Mark Kleinman (@MarkKleinmanSky)
+
+# --- À ajouter quand tu auras créé les feeds rss.app ---
+# https://rss.app/feeds/XXXX.xml                       # X : Ed Hammond (Bloomberg)
+# https://rss.app/feeds/YYYY.xml                       # X : Dinesh Nair (Bloomberg)
+# https://rss.app/feeds/ZZZZ.xml                       # Newsletter FT Due Diligence (email->RSS)
