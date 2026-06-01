@@ -72,6 +72,12 @@ RULES: list[tuple[int, str, str, str]] = [
 
 _COMPILED = [(w, et, re.compile(pat, re.IGNORECASE), label) for (w, et, pat, label) in RULES]
 
+# Filtre "dette / titres obligataires" : une "tender offer" sur des NOTES/BONDS
+# est un refinancement, PAS une acquisition. On penalise fortement ce contexte.
+_DEBT_NOUN = re.compile(r"\b(notes?|bonds?|debentures?|consent solicitation)\b", re.IGNORECASE)
+_DEBT_CTX = re.compile(r"\b(tender offer|exchange offer|consent solicitation|offering|refinanc)\w*", re.IGNORECASE)
+_DEBT_PENALTY = 8
+
 
 @dataclass
 class Classification:
@@ -97,5 +103,12 @@ def classify(text: str) -> Classification:
             if weight > best_weight:
                 best_weight = weight
                 best_type = event_type
+
+    # Penalite contexte dette (notes/obligations) -> evite les faux positifs tender offer
+    if total > 0 and _DEBT_NOUN.search(text) and _DEBT_CTX.search(text):
+        total = max(0, total - _DEBT_PENALTY)
+        matched.append("[-] contexte dette (notes/obligations)")
+        if total == 0:
+            best_type = "none"
 
     return Classification(score=total, event_type=best_type, matched=matched)
