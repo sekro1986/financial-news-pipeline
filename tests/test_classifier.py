@@ -48,3 +48,11 @@ def test_strategic_review_medium():
     c = classify("Company announces strategic review exploring strategic alternatives")
     assert c.score >= 5
     assert c.event_type == "strategic_review"
+
+
+def test_agrees_to_acquire_variants():
+    for t in ["Spectris agrees to acquire Micromeritics",
+              "Aviva agreed to acquire Direct Line",
+              "Company plans to acquire rival"]:
+        c = classify(t)
+        assert c.score >= 6, (t, c.score)

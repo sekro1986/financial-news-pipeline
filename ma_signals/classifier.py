@@ -33,7 +33,8 @@ RULES: list[tuple[int, str, str, str]] = [
     (9,  "tender_offer",    r"\bsc\s*to-t\b|\bschedule\s*to\b",                   "Schedule TO (tender offer)"),
     (8,  "tender_offer",    r"\btender\s+offer\b",                                "tender offer"),
     (8,  "merger_agt",      r"\b(definitive\s+)?merger\s+agreement\b",            "merger agreement"),
-    (7,  "merger_agt",      r"\bagreed?\s+to\s+(be\s+)?acquire[ds]?\b",           "agreed to acquire"),
+    (7,  "merger_agt",      r"\bagree(?:s|d|ing)?\s+to\s+(?:be\s+)?acquire[ds]?\b", "agree(s) to acquire"),
+    (6,  "merger_agt",      r"\bto\s+acquire\b",                                "to acquire"),
     (7,  "merger_agt",      r"\bdefinitive\s+agreement\b",                        "definitive agreement"),
 
     # --- Prises de participation / activisme ---
@@ -64,6 +65,7 @@ RULES: list[tuple[int, str, str, str]] = [
     # --- Termes génériques EN (faibles, confirment le contexte) ---
     (3,  "generic",         r"\btakeover\b",                                      "takeover (générique)"),
     (3,  "generic",         r"\bacquisition\b",                                   "acquisition (générique)"),
+    (3,  "generic",         r"\bacquires?\b",                                     "acquire (générique)"),
     (2,  "generic",         r"\bmerger\b",                                        "merger (générique)"),
     (2,  "generic",         r"\bbid\b",                                           "bid (générique)"),
 ]

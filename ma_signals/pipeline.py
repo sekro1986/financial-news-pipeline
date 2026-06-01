@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from .classifier import classify
+from .extract import guess_company, clean_html
 from .config import settings
 from .db import get_session
 from .models import Signal
@@ -50,6 +51,9 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 continue
 
             event_type = item.event_hint or cls.event_type
+            # Societe : garde celle du collecteur si presente, sinon heuristique sur le titre
+            company = (item.company or guess_company(item.title))[:256]
+            summary = clean_html(item.summary)[:4000]
             is_alertable = score >= settings.alert_min_score
             alerted_flag = 1 if (seed or not is_alertable) else 0
 
@@ -57,10 +61,10 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 dedup_key=item.dedup_key,
                 source=item.source,
                 event_type=event_type,
-                company=item.company[:256],
+                company=company,
                 title=item.title,
                 url=item.url,
-                summary=item.summary[:4000],
+                summary=summary,
                 score=score,
                 matched_keywords=",".join(cls.matched),
                 published_at=item.published_at,
