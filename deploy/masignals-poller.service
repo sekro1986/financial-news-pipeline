@@ -1,0 +1,17 @@
+[Unit]
+Description=MA-Signals poller (collecte M&A)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adapter le chemin et l'utilisateur :
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.poller
+Restart=always
+RestartSec=10
+User=masignals
+
+[Install]
+WantedBy=multi-user.target
