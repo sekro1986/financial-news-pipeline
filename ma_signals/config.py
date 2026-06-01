@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     poll_interval_seconds: int = 300
 
     # --- Seuil de score pour déclencher une alerte ---
-    # 8 = signaux forts uniquement (offre ferme/possible, tender offer, OPA, scheme).
     alert_min_score: int = 8
 
     # --- Garde-fous anti-spam ---
@@ -26,7 +25,7 @@ class Settings(BaseSettings):
     telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
-    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss"
+    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom"
 
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
@@ -42,6 +41,12 @@ class Settings(BaseSettings):
         '"tender offer" OR "agreed to acquire" OR "buyout" when:3d'
     )
 
+    # --- Flux RSS personnalisés (rss.app : X/Twitter, blogs, newsletters) ---
+    # URLs séparées par des virgules ou des retours à la ligne.
+    rss_custom_feeds: str = ""
+    # Bonus de score pour ces sources curées (elles sont fiables / triées à la main).
+    curated_score_bonus: int = 2
+
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
     watchlist: str = ""
 
@@ -52,6 +57,11 @@ class Settings(BaseSettings):
     @property
     def press_query_list(self) -> list[str]:
         return [q.strip() for q in self.press_queries.split("|") if q.strip()]
+
+    @property
+    def rss_custom_feed_list(self) -> list[str]:
+        raw = self.rss_custom_feeds.replace("\n", ",")
+        return [u.strip() for u in raw.split(",") if u.strip()]
 
     @property
     def watchlist_list(self) -> list[str]:

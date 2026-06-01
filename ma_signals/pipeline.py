@@ -25,6 +25,9 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
 
     seed=True : persiste tout le backlog en le marquant deja notifie (alerted=1)
     et ne retourne rien -> pas d'inondation au premier demarrage.
+
+    Les sources curees (rss_custom) recoivent un bonus de score (curated_score_bonus)
+    car elles sont triees a la main (comptes/blogs M&A de confiance).
     """
     to_alert: list[Signal] = []
 
@@ -34,15 +37,20 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 continue
 
             cls = classify(item.text)
-            if cls.score <= 0:
+            score = cls.score
+            if score <= 0:
                 continue
+
+            # Bonus pour les sources curees
+            if item.source == "rss_custom":
+                score += settings.curated_score_bonus
 
             existing = session.query(Signal).filter_by(dedup_key=item.dedup_key).first()
             if existing:
                 continue
 
             event_type = item.event_hint or cls.event_type
-            is_alertable = cls.score >= settings.alert_min_score
+            is_alertable = score >= settings.alert_min_score
             alerted_flag = 1 if (seed or not is_alertable) else 0
 
             sig = Signal(
@@ -53,7 +61,7 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 title=item.title,
                 url=item.url,
                 summary=item.summary[:4000],
-                score=cls.score,
+                score=score,
                 matched_keywords=",".join(cls.matched),
                 published_at=item.published_at,
                 alerted=alerted_flag,
