@@ -8,18 +8,22 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- Base de données ---
-    # Par défaut SQLite (zéro config) ; en prod Docker on pointe vers Postgres.
     database_url: str = "sqlite:///./ma_signals.db"
 
     # --- Identité réseau (obligatoire et poli pour la SEC) ---
-    # La SEC EXIGE un User-Agent identifiant avec un email de contact.
     user_agent: str = "MASignals/1.0 (contact: change-me@example.com)"
 
     # --- Cadence de polling (secondes) ---
-    poll_interval_seconds: int = 300  # 5 min
+    poll_interval_seconds: int = 300
 
     # --- Seuil de score pour déclencher une alerte ---
-    alert_min_score: int = 5
+    # 8 = signaux forts uniquement (offre ferme/possible, tender offer, OPA, scheme).
+    alert_min_score: int = 8
+
+    # --- Garde-fous anti-spam ---
+    max_alerts_per_cycle: int = 25
+    alert_batch_size: int = 8
+    telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
     enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss"
@@ -39,7 +43,6 @@ class Settings(BaseSettings):
     )
 
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
-    # Vide = on suit TOUT le marché. Rempli = on ne garde que ces noms.
     watchlist: str = ""
 
     @property
