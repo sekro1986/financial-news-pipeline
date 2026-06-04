@@ -32,6 +32,10 @@ log = logging.getLogger("ma_signals.backfill")
 
 
 def _rescore(sig: Signal) -> int:
+    # Les signaux de marche (collecteur de prix) n'ont pas de mots-cles : leur
+    # score vient de l'ampleur du mouvement. On le preserve tel quel.
+    if sig.source == "prices" or (sig.event_type or "").startswith("price_"):
+        return sig.score
     text = " ".join(p for p in (sig.title, sig.summary, sig.company) if p)
     score = classify(text).score
     if sig.source in settings.curated_source_list and score > 0:

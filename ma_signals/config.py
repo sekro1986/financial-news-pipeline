@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
-    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures"
+    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices"
 
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     watchlist_file: str = "watchlist.yaml"
     # Cle OpenFIGI optionnelle (releve la limite de debit ; non requise).
     openfigi_api_key: str = ""
+
+    # --- Collecteur de prix (anomalie intraday via Yahoo Finance) ---
+    price_min_pct: float = 3.0     # variation |%| minimale pour stocker un signal
+    vol_spike_mult: float = 3.0    # ratio volume jour/moyenne -> pic de volume
 
     @property
     def sources_list(self) -> list[str]:

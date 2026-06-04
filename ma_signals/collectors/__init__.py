@@ -8,6 +8,7 @@ from .amf_france import AmfFranceCollector
 from .press_rss import PressRssCollector
 from .rss_custom import RssCustomCollector
 from .disclosures import DisclosuresCollector
+from .prices import PriceCollector
 
 REGISTRY: dict[str, type[Collector]] = {
     "sec_edgar": SecEdgarCollector,
@@ -16,6 +17,7 @@ REGISTRY: dict[str, type[Collector]] = {
     "press_rss": PressRssCollector,
     "rss_custom": RssCustomCollector,
     "disclosures": DisclosuresCollector,
+    "prices": PriceCollector,
 }
 
 

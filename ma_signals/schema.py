@@ -20,6 +20,7 @@ class RawItem:
     summary: str = ""
     company: str = ""
     event_hint: str = ""              # type d'événement déduit par le collecteur (ex: form EDGAR)
+    score_override: int | None = None # score impose par le collecteur (ex: anomalie de prix, sans mots-cles)
     published_at: dt.datetime | None = None
     extra: dict = field(default_factory=dict)
 

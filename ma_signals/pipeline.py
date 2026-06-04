@@ -61,10 +61,14 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
 
             cls = classify(item.text)
             score = cls.score
-            if score <= 0:
-                continue
+            # Score impose par le collecteur (ex: collecteur de prix : pas de
+            # mots-cles, le score vient de l'ampleur du mouvement).
+            if item.score_override is not None and item.score_override > score:
+                score = item.score_override
             if item.source in settings.curated_source_list:
                 score += settings.curated_score_bonus
+            if score <= 0:
+                continue
 
             # Doublon exact (meme article deja en base) -> on ignore.
             if session.query(Signal).filter_by(dedup_key=item.dedup_key).first():
