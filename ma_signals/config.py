@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
     watchlist: str = ""
 
+    # --- Watchlist d'emetteurs surveilles (pivot ad-hoc + prix), fichier de seed ---
+    watchlist_file: str = "watchlist.yaml"
+    # Cle OpenFIGI optionnelle (releve la limite de debit ; non requise).
+    openfigi_api_key: str = ""
+
     @property
     def sources_list(self) -> list[str]:
         return [s.strip() for s in self.enabled_sources.split(",") if s.strip()]

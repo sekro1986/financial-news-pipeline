@@ -65,3 +65,46 @@ class Signal(Base):
             "detected_at": self.detected_at.isoformat() if self.detected_at else None,
             "alerted": bool(self.alerted),
         }
+
+
+class WatchlistEntry(Base):
+    """Emetteur surveille = pivot de la veille active.
+
+    Sert (a) de cible pour le scraping ad-hoc par emetteur (ir_adhoc_url),
+    (b) de liste de symboles pour le moniteur de prix (yf_symbol), et (c) de
+    reference d'entite (lei/isin/figi) pour correler une news a un mouvement de
+    cours. N'est PAS un filtre du flux news (cf. settings.watchlist pour ca)."""
+
+    __tablename__ = "watchlist"
+    __table_args__ = (UniqueConstraint("name", name="uq_watchlist_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(256), index=True)         # nom legal/usuel
+    aliases: Mapped[str] = mapped_column(Text, default="")            # CSV d'alias/marques
+    isin: Mapped[str] = mapped_column(String(16), index=True, default="")
+    ticker: Mapped[str] = mapped_column(String(32), default="")        # ex: PGHN
+    exch_code: Mapped[str] = mapped_column(String(8), default="")      # ex: SW (OpenFIGI)
+    yf_symbol: Mapped[str] = mapped_column(String(32), index=True, default="")  # ex: PGHN.SW
+    lei: Mapped[str] = mapped_column(String(20), default="")
+    figi: Mapped[str] = mapped_column(String(16), default="")
+    country: Mapped[str] = mapped_column(String(4), default="")
+    ir_adhoc_url: Mapped[str] = mapped_column(Text, default="")        # page ad-hoc IR
+    active: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id, "name": self.name,
+            "aliases": [a for a in self.aliases.split(",") if a] if self.aliases else [],
+            "isin": self.isin, "ticker": self.ticker, "exch_code": self.exch_code,
+            "yf_symbol": self.yf_symbol, "lei": self.lei, "figi": self.figi,
+            "country": self.country, "ir_adhoc_url": self.ir_adhoc_url,
+            "active": bool(self.active), "notes": self.notes,
+        }
+
+    @property
+    def match_terms(self) -> list[str]:
+        """Termes (minuscule) servant a reconnaitre l'emetteur dans un texte."""
+        terms = [self.name] + (self.aliases.split(",") if self.aliases else [])
+        terms += [self.ticker, self.isin]
+        return [t.strip().lower() for t in terms if t and t.strip()]

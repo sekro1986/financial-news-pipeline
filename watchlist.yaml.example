@@ -1,0 +1,33 @@
+# ====================================================================
+# MA-Signals - watchlist d'emetteurs surveilles (pivot)
+# Sert au scraping ad-hoc par emetteur (ir_adhoc_url) et au moniteur de prix
+# (yf_symbol, rempli par `enrich`). Ce n'est PAS un filtre du flux news.
+#
+# Copier en watchlist.yaml puis :
+#   sudo -u masignals .venv/bin/python -m ma_signals.watchlist import
+#   sudo -u masignals .venv/bin/python -m ma_signals.watchlist enrich --apply
+# Minimum requis : name. Idealement : isin + ir_adhoc_url. Le reste est enrichi.
+# ====================================================================
+watchlist:
+  - name: Partners Group Holding AG
+    aliases: [Partners Group, PGHN]
+    isin: CH0024608827
+    country: CH
+    ir_adhoc_url: https://www.partnersgroup.com/en/news-views/ad-hoc-announcements/
+    notes: PE suisse (cas declencheur - gating Global Value SICAV)
+  - name: EQT AB
+    aliases: [EQT]
+    isin: SE0012853455
+    country: SE
+  - name: Bridgepoint Group plc
+    aliases: [Bridgepoint]
+    isin: GB00BNFRT684
+    country: GB
+  - name: Blackstone Inc
+    aliases: [Blackstone, BX]
+    isin: US09260D1072
+    country: US
+  - name: KKR & Co Inc
+    aliases: [KKR]
+    isin: US48251W1045
+    country: US

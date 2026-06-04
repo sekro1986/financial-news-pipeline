@@ -10,3 +10,6 @@ feeds.txt
 
 # Liste de flux disclosures (créée depuis disclosure_feeds.txt.example)
 disclosure_feeds.txt
+
+# Watchlist live (créée depuis watchlist.yaml.example)
+watchlist.yaml
