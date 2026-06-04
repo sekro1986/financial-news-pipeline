@@ -7,3 +7,6 @@ __pycache__/
 
 # Liste de flux personnelle (créée depuis feeds.txt.example)
 feeds.txt
+
+# Liste de flux disclosures (créée depuis disclosure_feeds.txt.example)
+disclosure_feeds.txt

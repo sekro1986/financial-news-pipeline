@@ -63,7 +63,7 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
             score = cls.score
             if score <= 0:
                 continue
-            if item.source == "rss_custom":
+            if item.source in settings.curated_source_list:
                 score += settings.curated_score_bonus
 
             # Doublon exact (meme article deja en base) -> on ignore.

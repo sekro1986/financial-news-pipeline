@@ -34,7 +34,7 @@ log = logging.getLogger("ma_signals.backfill")
 def _rescore(sig: Signal) -> int:
     text = " ".join(p for p in (sig.title, sig.summary, sig.company) if p)
     score = classify(text).score
-    if sig.source == "rss_custom" and score > 0:
+    if sig.source in settings.curated_source_list and score > 0:
         score += settings.curated_score_bonus
     return score
 

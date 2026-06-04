@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
-    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom"
+    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures"
 
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
@@ -78,6 +78,14 @@ class Settings(BaseSettings):
     # Bonus de score pour ces sources curées (fiables / triées à la main).
     curated_score_bonus: int = 2
 
+    # Sources beneficiant du bonus "curee" (wires officiels / triees main), CSV.
+    curated_sources: str = "rss_custom,disclosures"
+
+    # --- Flux de disclosures regulatoires multi-marches (collecteur disclosures) ---
+    # Defauts integres (GlobeNewswire) + fichier dedie + variable d'env, comme rss_custom.
+    disclosure_feeds_file: str = "disclosure_feeds.txt"
+    disclosure_feeds: str = ""
+
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
     watchlist: str = ""
 
@@ -88,6 +96,39 @@ class Settings(BaseSettings):
     @property
     def press_query_list(self) -> list[str]:
         return [q.strip() for q in self.press_queries.split("|") if q.strip()]
+
+    @property
+    def curated_source_list(self) -> list[str]:
+        return [x.strip() for x in self.curated_sources.split(",") if x.strip()]
+
+    def _file_env_feeds(self, env_csv: str, path: str) -> list[str]:
+        """Fusionne URLs d'une variable CSV et d'un fichier (1/ligne, # = commentaire),
+        dedupliquees en conservant l'ordre."""
+        urls: list[str] = []
+        raw = env_csv.replace("\n", ",")
+        urls += [u.strip() for u in raw.split(",") if u.strip()]
+        if path and os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    for line in fh:
+                        t = line.strip()
+                        if not t or t.startswith("#"):
+                            continue
+                        urls.append(t.split()[0])
+            except OSError:
+                pass
+        seen: set[str] = set()
+        out: list[str] = []
+        for u in urls:
+            if u not in seen:
+                seen.add(u)
+                out.append(u)
+        return out
+
+    @property
+    def disclosure_feed_list(self) -> list[str]:
+        """URLs supplementaires (hors defauts integres du collecteur) : env + fichier."""
+        return self._file_env_feeds(self.disclosure_feeds, self.disclosure_feeds_file)
 
     @property
     def rss_custom_feed_list(self) -> list[str]:
