@@ -13,7 +13,7 @@ watchlist:
     aliases: [Partners Group, PGHN]
     isin: CH0024608827
     country: CH
-    ir_adhoc_url: https://www.partnersgroup.com/en/news-views/ad-hoc-announcements/
+    ir_adhoc_url: https://www.partnersgroup.com/en/news-and-views/press-releases/corporate-news
     notes: PE suisse (cas declencheur - gating Global Value SICAV)
   - name: EQT AB
     aliases: [EQT]

@@ -94,7 +94,7 @@ RULES: list[tuple[int, str, str, str]] = [
     (7,  "exec_departure",  r"\b(ceo|cfo|chief\s+executive|chief\s+financial\s+officer|chairman)\b.{0,40}\b(steps?\s+down|resign\w+|departs?|to\s+leave|ousted|fired|sacked|exits?)\b", "depart dirigeant"),
     (8,  "accounting_irregularity", r"\b(accounting\s+(?:irregularit\w+|scandal|fraud|errors?)|restate(?:s|d|ment)?\s+(?:its\s+)?(?:accounts|earnings|financials|results)|material\s+weakness)\b", "irregularite comptable"),
     (7,  "auditor_resignation", r"\bauditor\s+(?:resign\w+|quits?|steps?\s+down|departs?)\b", "demission de l'auditeur"),
-    (8,  "short_seller",    r"\bshort[\s-]?seller\b|\bshort\s+report\b|\b(hindenburg|muddy\s+waters|viceroy\s+research)\b", "rapport short-seller"),
+    (8,  "short_seller",    r"\bshort[\s-]?sell(?:er|ers|ing)\b|\bshort\s+report\b|\b(hindenburg|muddy\s+waters|viceroy\s+research|grizzly\s+(?:research|reports))\b", "rapport short-seller"),
 
     # ============================ REGLEMENTAIRE / LEGAL ============================
     (6,  "investigation",   r"\b(under\s+investigation|regulatory\s+(?:probe|investigation)|probe[sd]?\s+(?:by|into)|investigat(?:es|ed|ion)\s+by)\b", "enquete/probe"),
