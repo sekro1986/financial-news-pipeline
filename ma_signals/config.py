@@ -27,6 +27,21 @@ class Settings(BaseSettings):
     # ('takeover' + 'merger' + 'acquisition'...) n'alerte jamais seul.
     generic_score_cap: int = 5
 
+    # Seuil d'alerte PAR FAMILLE d'evenement (un profit warning n'a pas la meme
+    # barre qu'une OPA). Surchargeable via la variable d'env FAMILY_THRESHOLDS (JSON).
+    # Les familles absentes retombent sur alert_min_score.
+    family_thresholds: dict[str, int] = {
+        "mna": 8,
+        "liquidity": 6,
+        "earnings": 7,
+        "distress": 6,
+        "capital": 7,
+        "governance": 7,
+        "regulatory": 7,
+        "market": 6,
+        "generic": 8,
+    }
+
     # --- Dedup au niveau "histoire" (cross-source) ---
     # Regroupe le meme deal republie par plusieurs medias dans cette fenetre.
     story_dedup: bool = True

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from .classifier import classify
 from .config import settings
 from .db import get_session
+from .classifier import family_of, family_threshold
 from .dedup import story_key
 from .extract import clean_html, guess_company
 from .models import Signal
@@ -96,7 +97,8 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 if already:
                     continue  # meme histoire deja captee recemment (autre media) -> skip
 
-            is_alertable = c.score >= settings.alert_min_score
+            threshold = family_threshold(family_of(c.event_type))
+            is_alertable = c.score >= threshold
             alerted_flag = 1 if (seed or not is_alertable) else 0
             sig = Signal(
                 dedup_key=c.item.dedup_key,
