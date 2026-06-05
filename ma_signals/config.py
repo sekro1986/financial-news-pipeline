@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     price_min_pct: float = 3.0     # variation |%| minimale pour stocker un signal
     vol_spike_mult: float = 3.0    # ratio volume jour/moyenne -> pic de volume
 
+    # --- Correlation news<->prix (mouvement inexplique) ---
+    correlation_enabled: bool = True
+    unexplained_window_hours: int = 24   # fenetre de recherche d'une news explicative
+    unexplained_bonus: int = 2           # bonus de score pour un mouvement inexplique
+
     @property
     def sources_list(self) -> list[str]:
         return [s.strip() for s in self.enabled_sources.split(",") if s.strip()]

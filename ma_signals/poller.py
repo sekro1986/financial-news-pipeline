@@ -18,6 +18,7 @@ from .config import settings
 from .db import SessionLocal, init_db
 from .models import Signal
 from .pipeline import process_items
+from .correlate import mark_unexplained_moves
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,11 +43,18 @@ def run_cycle(seed: bool = False) -> int:
     log.info("cycle: %d items collectes au total", len(all_items))
     new_alerts = process_items(all_items, seed=seed)
     if seed:
+        # On annote quand meme les mouvements inexpliques en silence (sans alerter).
+        mark_unexplained_moves(seed=True)
         log.info("SEED initial : backlog enregistre en silence (aucune alerte envoyee).")
         return 0
-    dispatch(new_alerts)
-    log.info("cycle: %d nouvelles alertes", len(new_alerts))
-    return len(new_alerts)
+    # Correlation news<->prix : promeut d'eventuels mouvements inexpliques en alerte.
+    extra = mark_unexplained_moves(seed=False)
+    if extra:
+        log.info("cycle: %d mouvement(s) inexplique(s) promu(s) en alerte", len(extra))
+    all_alerts = new_alerts + extra
+    dispatch(all_alerts)
+    log.info("cycle: %d nouvelles alertes", len(all_alerts))
+    return len(all_alerts)
 
 
 def main() -> None:
