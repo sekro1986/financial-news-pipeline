@@ -132,8 +132,10 @@ FAMILY_OF: dict[str, str] = {
     "auditor_resignation": "governance", "short_seller": "governance",
     # regulatory
     "investigation": "regulatory", "sanction": "regulatory",
-    # marche (alimente par le collecteur de prix, pas par classify)
+    # marche (collecteur de prix)
     "price_drop": "market", "price_spike": "market", "volume_spike": "market",
+    # anticipation (screener de proies)
+    "target_candidate": "anticipation", "undervalued": "anticipation", "accumulation": "anticipation",
 }
 
 _COMPILED = [(w, et, re.compile(pat, re.IGNORECASE), label) for (w, et, pat, label) in RULES]

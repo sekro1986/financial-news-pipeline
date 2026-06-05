@@ -39,6 +39,7 @@ class Settings(BaseSettings):
         "governance": 7,
         "regulatory": 7,
         "market": 6,
+        "anticipation": 7,
         "generic": 8,
     }
 
@@ -53,7 +54,7 @@ class Settings(BaseSettings):
     telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
-    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices,adhoc_ir"
+    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices,adhoc_ir,screener"
 
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
@@ -102,6 +103,12 @@ class Settings(BaseSettings):
     correlation_enabled: bool = True
     unexplained_window_hours: int = 24   # fenetre de recherche d'une news explicative
     unexplained_bonus: int = 2           # bonus de score pour un mouvement inexplique
+
+    # --- Screener 'anticipation' (proies potentielles) ---
+    target_cheap_pct: float = 0.20       # position <= 20% du range 52s = decote
+    target_cheap_points: int = 4         # points pour la decote
+    target_accum_points: int = 5         # points pour >=1 accumulation recente
+    accumulation_window_days: int = 90   # fenetre de comptage des franchissements/stakes
 
     @property
     def sources_list(self) -> list[str]:

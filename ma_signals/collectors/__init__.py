@@ -10,6 +10,7 @@ from .rss_custom import RssCustomCollector
 from .disclosures import DisclosuresCollector
 from .prices import PriceCollector
 from .adhoc import AdhocCollector
+from .screener import TargetScreener
 
 REGISTRY: dict[str, type[Collector]] = {
     "sec_edgar": SecEdgarCollector,
@@ -20,6 +21,7 @@ REGISTRY: dict[str, type[Collector]] = {
     "disclosures": DisclosuresCollector,
     "prices": PriceCollector,
     "adhoc_ir": AdhocCollector,
+    "screener": TargetScreener,
 }
 
 
