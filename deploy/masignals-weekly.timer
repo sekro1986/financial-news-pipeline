@@ -1,0 +1,9 @@
+[Unit]
+Description=Declenche le recap hebdomadaire MA-Signals (vendredi 17:00)
+
+[Timer]
+OnCalendar=Fri *-*-* 17:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

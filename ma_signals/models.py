@@ -102,9 +102,42 @@ class WatchlistEntry(Base):
             "active": bool(self.active), "notes": self.notes,
         }
 
+    # Formes sociales a retirer en fin de nom pour obtenir le "nom de marche".
+    _CORP_FORMS = {"ag", "ab", "asa", "nv", "sa", "se", "plc", "inc", "corp",
+                   "corporation", "ltd", "limited", "llc", "co", "holding",
+                   "holdings", "oyj", "spa", "gmbh", "as", "a/s"}
+
     @property
     def match_terms(self) -> list[str]:
-        """Termes (minuscule) servant a reconnaitre l'emetteur dans un texte."""
-        terms = [self.name] + (self.aliases.split(",") if self.aliases else [])
-        terms += [self.ticker, self.isin]
-        return [t.strip().lower() for t in terms if t and t.strip()]
+        """Termes (minuscule) servant a reconnaitre l'emetteur dans un texte :
+        nom complet, alias, ticker, ISIN + 'nom de marche' (suffixes sociaux retires,
+        ex: 'Partners Group Holding AG' -> 'partners group')."""
+        terms = {t.strip().lower() for t in
+                 ([self.name] + (self.aliases.split(",") if self.aliases else [])
+                  + [self.ticker, self.isin]) if t and t.strip()}
+        toks = self.name.lower().replace(",", " ").split()
+        while toks and (toks[-1].strip(".") in self._CORP_FORMS or not toks[-1].strip(".").isalnum()):
+            toks.pop()
+        if len(toks) >= 1:
+            core = " ".join(toks)
+            if len(core) >= 3:
+                terms.add(core)
+        return [t for t in terms if t]
+
+
+class WeeklyAudit(Base):
+    """Trace d'un recap hebdo : permet de suivre l'evolution du taux de capture."""
+
+    __tablename__ = "weekly_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc), index=True
+    )
+    period_days: Mapped[int] = mapped_column(Integer, default=7)
+    n_movers: Mapped[int] = mapped_column(Integer, default=0)
+    n_captured: Mapped[int] = mapped_column(Integer, default=0)   # alertes
+    n_detected: Mapped[int] = mapped_column(Integer, default=0)   # detecte mais sous le seuil
+    n_missed: Mapped[int] = mapped_column(Integer, default=0)
+    capture_rate: Mapped[int] = mapped_column(Integer, default=0) # % (capté/alerté sur movers)
+    details: Mapped[str] = mapped_column(Text, default="")        # JSON lisible

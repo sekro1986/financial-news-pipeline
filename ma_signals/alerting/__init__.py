@@ -64,6 +64,11 @@ def _send_all(message: str) -> bool:
     return ok
 
 
+def send_message(text: str) -> bool:
+    """Envoie un message libre sur les canaux configures (recap hebdo, etc.)."""
+    return _send_all(text)
+
+
 def dispatch(signals: list[Signal]) -> None:
     if not signals:
         return

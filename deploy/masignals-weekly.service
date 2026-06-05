@@ -1,0 +1,11 @@
+[Unit]
+Description=MA-Signals recap hebdomadaire auto-evaluatif
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.weekly_review --send --save /opt/financial-news-pipeline/recap-hebdo.md
+User=masignals
