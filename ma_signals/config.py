@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     telegram_send_delay: float = 1.5
 
     # --- Sources activées (CSV) ---
-    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices,adhoc_ir,screener"
+    enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices,adhoc_ir,screener,mfn"
 
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
@@ -80,12 +80,17 @@ class Settings(BaseSettings):
     curated_score_bonus: int = 2
 
     # Sources beneficiant du bonus "curee" (wires officiels / triees main), CSV.
-    curated_sources: str = "rss_custom,disclosures,adhoc_ir"
+    curated_sources: str = "rss_custom,disclosures,adhoc_ir,mfn"
 
     # --- Flux de disclosures regulatoires multi-marches (collecteur disclosures) ---
     # Defauts integres (GlobeNewswire) + fichier dedie + variable d'env, comme rss_custom.
     disclosure_feeds_file: str = "disclosure_feeds.txt"
     disclosure_feeds: str = ""
+
+    # --- MFN.se (wire nordique/EU, riche ISIN/LEI) ---
+    mfn_feed_url: str = "https://mfn.se/all/rss.xml"
+    # True : ne garder que les emetteurs de la watchlist (par ISIN) -> haute precision.
+    mfn_watchlist_only: bool = True
 
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
     watchlist: str = ""

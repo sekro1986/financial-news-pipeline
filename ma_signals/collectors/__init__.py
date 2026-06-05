@@ -11,6 +11,7 @@ from .disclosures import DisclosuresCollector
 from .prices import PriceCollector
 from .adhoc import AdhocCollector
 from .screener import TargetScreener
+from .mfn import MfnCollector
 
 REGISTRY: dict[str, type[Collector]] = {
     "sec_edgar": SecEdgarCollector,
@@ -22,6 +23,7 @@ REGISTRY: dict[str, type[Collector]] = {
     "prices": PriceCollector,
     "adhoc_ir": AdhocCollector,
     "screener": TargetScreener,
+    "mfn": MfnCollector,
 }
 
 
