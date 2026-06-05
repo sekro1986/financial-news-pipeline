@@ -73,7 +73,10 @@ RULES: list[tuple[int, str, str, str]] = [
     (7,  "guidance_cut",    r"\b(abaisse|r[ée]vise\s+[àa]\s+la\s+baisse|r[ée]duit)\s+(?:ses\s+)?(?:pr[ée]visions|objectifs|guidance|perspectives)\b", "abaissement objectifs (FR)"),
 
     # ============================ DETRESSE ============================
-    (8,  "insolvency",      r"\b(chapter\s*1[15]|chapter\s*7|administration|insolven\w+|bankruptc\w+|liquidation|receivership)\b", "insolvabilite/faillite"),
+    (8,  "insolvency",      r"\b(chapter\s*1[15]|chapter\s*7|bankruptc\w+|receivership)\b", "faillite/bankruptcy"),
+    (8,  "insolvency",      r"\b(?:in|into|towards?|from|enters?|entered|entering|placed\s+in(?:to)?|fil(?:e|es|ed|ing)\s+for|calls?\s+in|appoint\w*)\s+administrat(?:ion|ors?)\b|\badministrat(?:ion|ors?)\s+appointed\b", "mise en administration"),
+    (8,  "insolvency",      r"\binsolven(?:cy|t)\b(?!\s+(?:framework|law|code|regime|practitioner|professionals?|act|rules?|reform))", "insolvabilite"),
+    (7,  "insolvency",      r"\b(?:in|into|towards?|enters?|entered|goes?\s+into|compulsory|voluntary|forced\s+into)\s+liquidation\b|\bliquidation\s+(?:proceedings?|process)\b|\bcollaps\w+\s+into\s+(?:liquidation|administration)\b", "liquidation"),
     (7,  "default_event",   r"\b(defaults?\s+on|payment\s+default|misses?\s+(?:a\s+)?(?:coupon|interest|debt)\s+payment)\b", "defaut de paiement"),
     (7,  "covenant_breach", r"\bcovenant\s+(?:breach|waiver|default)\b|\bbreach(?:es|ed)?\s+(?:its\s+)?covenants?\b", "breach de covenant"),
     (7,  "going_concern",   r"\bgoing\s+concern\b",                               "going concern"),
@@ -142,9 +145,18 @@ _COMPILED = [(w, et, re.compile(pat, re.IGNORECASE), label) for (w, et, pat, lab
 
 # Filtre "dette / titres obligataires" : une "tender offer" sur des NOTES/BONDS
 # est un refinancement, PAS une acquisition.
-_DEBT_NOUN = re.compile(r"\b(notes?|bonds?|debentures?|consent solicitation)\b", re.IGNORECASE)
+_DEBT_NOUN = re.compile(r"\b(notes?|bonds?|eurobonds?|debentures?|sukuk|debt|consent solicitation)\b", re.IGNORECASE)
 _DEBT_CTX = re.compile(r"\b(tender offer|exchange offer|consent solicitation|offering|refinanc)\w*", re.IGNORECASE)
 _DEBT_PENALTY = 8
+
+# Penalite "saga judiciaire d'un short-seller" : un proces/condamnation d'un
+# vendeur a decouvert n'est PAS une attaque short sur une societe -> on neutralise.
+_SHORTSELLER_SAGA = re.compile(
+    r"\bshort[\s-]?sell(?:er|ers)\b.*?\b(guilty|convict\w+|jury|trial|sentenc\w+|fraud|pleads?|indict\w+|acquitt\w+)\b"
+    r"|\b(guilty|convict\w+|jury|sentenc\w+|indict\w+)\b.*?\bshort[\s-]?sell(?:er|ers)\b",
+    re.IGNORECASE,
+)
+_SHORTSELLER_PENALTY = 8
 
 
 def family_of(event_type: str) -> str:
@@ -192,6 +204,13 @@ def classify(text: str) -> Classification:
     if total > 0 and _DEBT_NOUN.search(text) and _DEBT_CTX.search(text):
         total = max(0, total - _DEBT_PENALTY)
         matched.append("[-] contexte dette (notes/obligations)")
+        if total == 0:
+            best_type = "none"
+
+    # Penalite saga judiciaire short-seller (proces, pas attaque sur une societe)
+    if total > 0 and best_type == "short_seller" and _SHORTSELLER_SAGA.search(text):
+        total = max(0, total - _SHORTSELLER_PENALTY)
+        matched.append("[-] saga judiciaire short-seller")
         if total == 0:
             best_type = "none"
 

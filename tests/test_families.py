@@ -59,3 +59,30 @@ def test_generic_still_capped_and_silent():
     assert c.family == "generic"
     assert c.score <= 5
     assert not _alerts("Takeover and merger buzz: acquisition and bid chatter rises")
+
+
+def test_no_false_insolvency_on_trump_administration():
+    for t in ["Trump administration to ask US AI firms to submit models",
+              "Officials in the Trump administration may benefit from the listing",
+              "New York sues over the Trump administration's deal",
+              "How India's Insolvency Framework Has Evolved over 10 Years"]:
+        c = classify(t)
+        assert c.event_type != "insolvency", (t, c.score)
+
+
+def test_real_administration_still_fires():
+    assert classify("European cargo airline in administration").event_type == "insolvency"
+    assert classify("UK retailer collapsing into liquidation").event_type == "insolvency"
+
+
+def test_debt_tender_filtered():
+    for t in ["Aptiv completes $1.37 billion debt tender offer",
+              "Zambia improves tender offer on its $1.36 billion Eurobond maturing in 2053"]:
+        assert classify(t).score == 0, t
+
+
+def test_shortseller_legal_saga_filtered_but_attack_kept():
+    assert classify("Federal Jury Convicts Short Seller Andrew Left of Securities Fraud").score == 0
+    assert classify("Andrew Left found guilty of fraud, short-seller community rattled").score == 0
+    # une vraie attaque short sur une societe reste
+    assert classify("Pirelli shares fall after short-seller report on Russian ties").event_type == "short_seller"
