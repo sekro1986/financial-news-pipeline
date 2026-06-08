@@ -58,6 +58,14 @@ _EXPECTED: dict[str, int] = {
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+# Mots qui ne sont JAMAIS un nom de société (adjectifs/fragments) -> pas de résolution
+# (evite 'Scottish'->Scottish Mortgage, 'From'->titre coréen, 'Tire', 'Product'...).
+_NOT_A_COMPANY = {
+    "from", "tire", "scottish", "product", "immobilier", "nearly", "prominent",
+    "here", "action", "repli", "palmar", "palmares", "short", "seller", "tyremaker",
+    "group", "new", "the", "law", "firm", "directs", "slides", "offers", "union",
+}
+
 # Deal qui CAPOTE/se retire -> la cible BAISSE (sens inverse d'une offre vivante).
 _COLLAPSE = re.compile(
     r"\b(walk[s]?\s+away|walked\s+away|pull[s]?\s+out|pulled\s+out|withdraw\w+|"
@@ -108,11 +116,18 @@ def _lead_token(name: str) -> str:
     return toks[0] if toks else ""
 
 
+def _norm(s: str) -> str:
+    return " ".join(_TOKEN_RE.findall((s or "").lower()))
+
+
 def yahoo_search_symbol(company: str) -> str:
-    """Nom -> ticker, AVEC garde-fou : le nom du resultat doit commencer par le
-    token distinctif de la societe (sinon "" -> non résolu)."""
+    """Nom -> ticker, garde-fou RENFORCÉ (fiabilité > exhaustivité) :
+    - on rejette les noms génériques/fragments (_NOT_A_COMPANY) et trop courts ;
+    - on n'accepte un résultat que si son nom officiel COMMENCE par le nom cherché
+      (préfixe), pas seulement le 1er mot -> évite 'Scottish'->Scottish Mortgage."""
+    norm = _norm(company)
     lead = _lead_token(company)
-    if len(lead) < 3:
+    if len(norm) < 3 or lead in _NOT_A_COMPANY or (len(norm.split()) == 1 and lead in _NOT_A_COMPANY):
         return ""
     try:
         r = httpx.get(_SEARCH.format(q=urllib.parse.quote(company)), headers={"User-Agent": _UA},
@@ -123,10 +138,10 @@ def yahoo_search_symbol(company: str) -> str:
         log.debug("yahoo_search %s: %s", company, exc)
         return ""
     for q in quotes:
-        if q.get("quoteType") != "EQUITY":
+        if q.get("quoteType") != "EQUITY" or not q.get("symbol"):
             continue
-        nm = f"{q.get('shortname','')} {q.get('longname','')}".lower()
-        if _lead_token(nm) == lead and q.get("symbol"):   # 1er mot identique -> identite fiable
+        nm = _norm(f"{q.get('shortname','')} {q.get('longname','')}")
+        if nm.startswith(norm):   # nom officiel commence par le nom cherché -> identité fiable
             return q["symbol"]
     return ""
 

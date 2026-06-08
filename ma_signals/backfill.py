@@ -64,7 +64,13 @@ def main() -> None:
                 if args.apply:
                     s.delete(sig)
                 continue
-            new_company = (sig.company or guess_company(sig.title))[:256]
+            # Sources presse : on RÉ-EXTRAIT depuis le titre avec l'extracteur courant
+            # (nettoie les vieux noms sales) ; sources à société fournie (sec/mfn/prix/
+            # screener) : on conserve la valeur du collecteur.
+            if sig.source in ("press_rss", "disclosures", "rss_custom", "adhoc_ir"):
+                new_company = (guess_company(sig.title) or sig.company)[:256]
+            else:
+                new_company = (sig.company or guess_company(sig.title))[:256]
             new_summary = clean_html(sig.summary)[:4000]
             new_sk = story_key(new_company, sig.event_type, sig.title)
             if (new_score != sig.score) or (new_company != sig.company) \
