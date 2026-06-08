@@ -33,7 +33,7 @@ _HEADLINE_VERBS = {
     "unveils", "announces", "announced", "reports", "reported", "completes", "completed",
     "agrees", "agreed", "launches", "launched", "raises", "cuts", "issues", "issued",
     "faces", "facing", "explores", "weighs", "considers", "rejects", "accepts", "names",
-    "appoints", "expects", "posts", "swings", "eyes", "mulls", "after", "amid", "as", "offers", "offer",
+    "appoints", "expects", "posts", "swings", "eyes", "mulls", "after", "amid", "as", "offers", "offer", "directs",
     "accepte", "lance", "dévoile", "devoile", "annonce", "abaisse", "relève", "releve",
     "chute", "bondit", "recule", "grimpe", "vise", "rejette", "confirme", "propose",
     "augmente", "envisage", "publie", "nomme", "cède", "cede", "rachète", "rachete",
@@ -42,7 +42,7 @@ _HEADLINE_VERBS = {
 _LEADING_DESCRIPTORS = {
     "tire", "giant", "drugmaker", "chipmaker", "carmaker", "automaker", "lender",
     "retailer", "miner", "insurer", "biotech", "fintech", "startup", "group",
-    "tech", "oil", "energy", "luxury", "fashion", "pharma", "bank", "broker",
+    "tech", "oil", "energy", "luxury", "fashion", "pharma", "bank", "broker", "tyremaker",
 }
 
 _EVENT_WORDS = re.compile(
@@ -75,6 +75,21 @@ _PATTERNS = [
     re.compile(rf"\b(?:rachat|acquisition|prise de participation)\s+(?:de|d'|d’|dans)\s+({_PHRASE})", re.I),
 ]
 _LEADING = re.compile(rf"^({_PHRASE})")
+
+# Noms de short-sellers/fonds attaquants : ce sont des AUTEURS, jamais la cible.
+_SHORT_SELLERS = {
+    "hindenburg", "grizzly", "muddy", "viceroy", "citron", "citadel", "qube",
+    "connor", "jp", "jpmorgan", "morgan", "bear", "cave", "actusraypartners",
+    "prominent", "short", "seller", "tire", "tyremaker", "andrew", "left",
+}
+_SHORT_CONTEXT = re.compile(
+    r"\bshort[\s-]?sell|\bshort\s+report|\bhindenburg|\bgrizzly|\bmuddy\s+waters|"
+    r"\bviceroy|\bcitron|\bactivist\s+short", re.IGNORECASE)
+# Cible explicitement visée APRÈS un verbe d'attaque. (?i:...) = ancre insensible à
+# la casse, mais le nom capturé reste sensible à la casse (_PHRASE).
+_SHORT_TARGET_AFTER = re.compile(
+    rf"(?i:\btargets?\b|\btargeting\b|\bbets?\s+against\b|\bshorting\b|"
+    rf"\bshort\s+position\s+in\b|\breport\s+on\b|\bagainst\b)\s+(?:the\s+)?({_PHRASE})")
 
 _TAG = re.compile(r"<[^>]+>")
 _WS = re.compile(r"\s+")
@@ -117,6 +132,11 @@ def _clean(s: str) -> str:
     return cand
 
 
+def _is_short_seller_name(name: str) -> bool:
+    toks = name.lower().split()
+    return bool(toks) and toks[0].strip(".,'’") in _SHORT_SELLERS
+
+
 def guess_company(title: str) -> str:
     if not title:
         return ""
@@ -124,6 +144,19 @@ def guess_company(title: str) -> str:
     t = _PREFIX.sub("", t).strip()
     t = _pick_segment(t)
     t = _PREFIX.sub("", t).strip()
+    # Contexte short-seller : on vise la CIBLE (société qui réagit), pas le fonds.
+    if _SHORT_CONTEXT.search(t):
+        lead = _LEADING.match(t)
+        if lead:
+            c = _clean(lead.group(1))
+            if c and not _is_short_seller_name(c):
+                return c
+        m = _SHORT_TARGET_AFTER.search(t)   # "... targets/against/shorting X"
+        if m:
+            c = _clean(m.group(1))
+            if c and not _is_short_seller_name(c):
+                return c
+        return ""   # rien de fiable -> vide plutôt qu'un nom de fonds
     for pat in _PATTERNS:
         m = pat.search(t)
         if m:
