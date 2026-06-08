@@ -82,15 +82,47 @@ _ACQUIRER_VERB = re.compile(
     re.IGNORECASE)
 _LEAD_RE = re.compile(r"\W*([A-Z][\w&.'’-]*(?:\s+[A-Z][\w&.'’-]*){0,3})")
 
+# --- Couche de NUANCE (la formulation inverse/neutralise le sens attendu) ---
+# Short-seller démenti / contesté / rebond -> l'attaque n'a pas mordu : sens ambigu.
+_DENIAL = re.compile(
+    r"\b(den(?:y|ies|ied)|reject\w+|rebut\w+|dismiss\w+|refut\w+|recover\w+|rebound\w+|"
+    r"bounce\w*\s+back|threaten\w*\s+legal|hits?\s+back|dément|dement|conteste|réfute|"
+    r"porte\s+plainte|riposte)\b", re.IGNORECASE)
+# Résultats/guidance : tournure POSITIVE (perte qui se réduit, mieux que craint...) -> hausse.
+_POSITIVE_EARN = re.compile(
+    r"\b(narrow\w*|smaller(?:[-\s]than[-\s]expected)?\s+loss|better\s+than\s+(?:feared|expected)|"
+    r"ahead\s+of\s+(?:expectations|forecasts?|estimates)|beat\w*|top\w*\s+(?:estimates|forecasts)|"
+    r"rais\w+\s+(?:guidance|outlook)|réduit\s+sa\s+perte|perte\s+(?:se\s+)?réduit|mieux\s+que\s+prévu|"
+    r"relève\s+(?:ses\s+)?(?:prévisions|objectifs))\b", re.IGNORECASE)
+# Levée de capital SURSOUSCRITE -> bien accueillie -> hausse.
+_OVERSUBSCRIBED = re.compile(r"\b(oversubscrib\w+|fully\s+subscrib\w+|sursouscrit\w*)\b", re.IGNORECASE)
+
+
+def _nuance(event_type: str, family: str, title: str) -> int | None:
+    """Retourne un sens attendu ajusté si une nuance de formulation s'applique, sinon None."""
+    t = title or ""
+    if event_type == "short_seller" and _DENIAL.search(t):
+        return 0   # démenti / rebond -> issue incertaine, pas de verdict
+    if family == "earnings" and _POSITIVE_EARN.search(t):
+        return 1   # mauvaise nouvelle annoncée... mais positive en fait
+    if event_type in ("equity_raise", "rights_issue") and _OVERSUBSCRIBED.search(t):
+        return 1
+    return None
+
 
 def _norm(s: str) -> str:
     return " ".join(_TOKEN_RE.findall((s or "").lower()))
 
 
 def refine_expected(event_type: str, company: str, title: str) -> int:
-    """Affine le sens attendu selon le contexte (deal qui capote, acquereur vs cible)."""
+    """Affine le sens attendu selon le contexte : nuance de formulation, deal qui
+    capote, acquéreur vs cible."""
+    fam = family_of(event_type)
+    nuanced = _nuance(event_type, fam, title)
+    if nuanced is not None:
+        return nuanced
     exp = _EXPECTED.get(event_type, 0)
-    if family_of(event_type) != "mna":
+    if fam != "mna":
         return exp
     if _COLLAPSE.search(title or ""):
         return -1   # offre retiree/echouee -> la cible decroche
