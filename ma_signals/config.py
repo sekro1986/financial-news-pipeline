@@ -113,6 +113,10 @@ class Settings(BaseSettings):
     unexplained_window_hours: int = 24   # fenetre de recherche d'une news explicative
     unexplained_bonus: int = 2           # bonus de score pour un mouvement inexplique
 
+    # --- Analyse d'impact quotidienne (signal -> reaction du cours) ---
+    impact_min_pct: float = 2.0     # variation |%| mini pour qu'un signal soit "confirmé"/"infirmé"
+    impact_max_names: int = 40      # plafond de societes analysees par run (bornage reseau)
+
     # --- Screener 'anticipation' (proies potentielles) ---
     target_cheap_pct: float = 0.20       # position <= 20% du range 52s = decote
     target_cheap_points: int = 4         # points pour la decote

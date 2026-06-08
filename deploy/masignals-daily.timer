@@ -1,0 +1,9 @@
+[Unit]
+Description=Déclenche l'analyse d'impact quotidienne MA-Signals (jours ouvrables 08:00)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 08:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

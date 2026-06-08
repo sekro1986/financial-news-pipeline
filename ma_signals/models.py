@@ -154,3 +154,34 @@ class WeeklyAudit(Base):
     n_missed: Mapped[int] = mapped_column(Integer, default=0)
     capture_rate: Mapped[int] = mapped_column(Integer, default=0) # % (capté/alerté sur movers)
     details: Mapped[str] = mapped_column(Text, default="")        # JSON lisible
+
+
+class SignalOutcome(Base):
+    """Resultat mesure d'un signal : impact reel sur le cours + verdict de correlation.
+
+    Alimente l'analyse quotidienne (signal -> reaction du cours) et le suivi de la
+    qualite predictive du bot dans le temps."""
+
+    __tablename__ = "signal_outcome"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc), index=True
+    )
+    signal_id: Mapped[int] = mapped_column(Integer, index=True, default=0)
+    signal_date: Mapped[str] = mapped_column(String(10), default="")   # YYYY-MM-DD analysé
+    company: Mapped[str] = mapped_column(String(256), default="")
+    symbol: Mapped[str] = mapped_column(String(32), default="")        # "" = non résolu
+    resolved_by: Mapped[str] = mapped_column(String(16), default="")   # watchlist | recherche | ""
+    event_type: Mapped[str] = mapped_column(String(48), default="")
+    family: Mapped[str] = mapped_column(String(24), default="")
+    expected_dir: Mapped[int] = mapped_column(Integer, default=0)      # +1 hausse / -1 baisse / 0
+    pct_since: Mapped[float] = mapped_column(default=0.0)              # variation depuis le signal (%)
+    verdict: Mapped[str] = mapped_column(String(16), default="", index=True)  # confirmé/infirmé/neutre/sans_attente/non_résolu
+
+    def to_dict(self) -> dict:
+        return {"signal_id": self.signal_id, "signal_date": self.signal_date,
+                "company": self.company, "symbol": self.symbol, "resolved_by": self.resolved_by,
+                "event_type": self.event_type, "family": self.family,
+                "expected_dir": self.expected_dir, "pct_since": round(self.pct_since, 2),
+                "verdict": self.verdict}

@@ -1,0 +1,11 @@
+[Unit]
+Description=MA-Signals analyse d'impact quotidienne (signal -> réalité)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.impact --send --save /opt/financial-news-pipeline/impact-jour.md
+User=masignals
