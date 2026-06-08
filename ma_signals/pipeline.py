@@ -10,7 +10,7 @@ from .config import settings
 from .db import get_session
 from .classifier import family_of, family_threshold
 from .dedup import story_key
-from .extract import clean_html, guess_company, publisher_name
+from .extract import clean_html, guess_company, publisher_name, strip_source_suffix
 from .watchlist import active_entries
 from .models import Signal
 from .schema import RawItem
@@ -70,7 +70,10 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 if pub and any(d in pub for d in deny):
                     continue
 
-            cls = classify(item.text)
+            # Classifie sur le titre nettoye de l'editeur (evite 'Profit Warning Alert'
+            # & co. d'injecter de faux mots-cles), + resume + societe.
+            clf_text = " ".join(p for p in (strip_source_suffix(item.title), item.summary, item.company) if p)
+            cls = classify(clf_text)
             score = cls.score
             # Score impose par le collecteur (ex: collecteur de prix : pas de
             # mots-cles, le score vient de l'ampleur du mouvement).

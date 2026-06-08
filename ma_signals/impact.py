@@ -58,6 +58,43 @@ _EXPECTED: dict[str, int] = {
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+# Deal qui CAPOTE/se retire -> la cible BAISSE (sens inverse d'une offre vivante).
+_COLLAPSE = re.compile(
+    r"\b(walk[s]?\s+away|walked\s+away|pull[s]?\s+out|pulled\s+out|withdraw\w+|"
+    r"abandon\w+|drop[s]?\s+(?:its\s+)?bid|dropped\s+(?:its\s+)?bid|call(?:s|ed)?\s+off|"
+    r"terminat\w+|scrap[s]?\w*|reject\w+|fail[s]?\b|failed|collaps\w+|end[s]?\s+talks|"
+    r"ended\s+talks|renonce|abandonne|retrait\w*\s+(?:de\s+)?(?:l['’]\s*)?offre|retir\w+\s+son\s+offre|échoue|echoue|capote)\b",
+    re.IGNORECASE)
+# Verbes indiquant que le SUJET en tete est l'ACQUEREUR (sa reaction est ambigue).
+_ACQUIRER_VERB = re.compile(
+    r"\b(offers?\s+to\s+acquire|agrees?\s+to\s+acquire|to\s+acquire|bid[s]?\s+for|"
+    r"make[s]?\s+(?:an?\s+)?(?:bid|offer)|launch\w*\s+(?:a\s+)?(?:bid|offer|opa)|"
+    r"augmente\s+sa\s+participation|monte\s+au\s+capital|lance\s+une\s+(?:opa|offre)|"
+    r"fait\s+une\s+offre|propose\s+de\s+rachet)",
+    re.IGNORECASE)
+_LEAD_RE = re.compile(r"\W*([A-Z][\w&.'’-]*(?:\s+[A-Z][\w&.'’-]*){0,3})")
+
+
+def _norm(s: str) -> str:
+    return " ".join(_TOKEN_RE.findall((s or "").lower()))
+
+
+def refine_expected(event_type: str, company: str, title: str) -> int:
+    """Affine le sens attendu selon le contexte (deal qui capote, acquereur vs cible)."""
+    exp = _EXPECTED.get(event_type, 0)
+    if family_of(event_type) != "mna":
+        return exp
+    if _COLLAPSE.search(title or ""):
+        return -1   # offre retiree/echouee -> la cible decroche
+    # Si la societe analysee EST le sujet en tete d'une phrase d'acquisition,
+    # c'est l'ACQUEREUR -> reaction ambigue, pas de verdict.
+    m = _LEAD_RE.match(title or "")
+    if m and _ACQUIRER_VERB.search(title or ""):
+        a, c = _norm(m.group(1)), _norm(company)
+        if c and (c == a or a.startswith(c) or c.startswith(a)):
+            return 0
+    return exp
+
 
 def prev_business_day(today: dt.date | None = None) -> dt.date:
     d = (today or dt.datetime.now(dt.timezone.utc).date()) - dt.timedelta(days=1)
@@ -169,7 +206,7 @@ def build_report(day: dt.date | None = None, resolve_fn=None, price_fn=None,
                 break
             analyzed += 1
             fam = family_of(sig.event_type)
-            expected = _EXPECTED.get(sig.event_type, 0)
+            expected = refine_expected(sig.event_type, sig.company, sig.title)
             symbol, by = _resolve(sig.company, f"{sig.title} {sig.company}")
             if not symbol:
                 rows.append({"company": sig.company, "symbol": "", "resolved_by": "",

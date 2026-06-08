@@ -22,6 +22,7 @@ _STOP = {
     "shares", "stock", "group", "plc", "inc", "corp", "ltd", "sa", "nv",
     "opa", "opr", "european", "american", "british", "french", "german",
     "asian", "global", "national", "international", "us-based", "uk-based",
+    "nearly", "repli", "immobilier", "palmar[èe]s", "palmares", "palmarès", "action", "here", "here's",
 }
 
 # Mots d'action marquant la FIN d'un nom dans un titre Title-Case (EN) / accroche (FR)
@@ -32,7 +33,7 @@ _HEADLINE_VERBS = {
     "unveils", "announces", "announced", "reports", "reported", "completes", "completed",
     "agrees", "agreed", "launches", "launched", "raises", "cuts", "issues", "issued",
     "faces", "facing", "explores", "weighs", "considers", "rejects", "accepts", "names",
-    "appoints", "expects", "posts", "swings", "eyes", "mulls", "after", "amid", "as",
+    "appoints", "expects", "posts", "swings", "eyes", "mulls", "after", "amid", "as", "offers", "offer",
     "accepte", "lance", "dévoile", "devoile", "annonce", "abaisse", "relève", "releve",
     "chute", "bondit", "recule", "grimpe", "vise", "rejette", "confirme", "propose",
     "augmente", "envisage", "publie", "nomme", "cède", "cede", "rachète", "rachete",
@@ -58,20 +59,20 @@ _SOURCE_SUFFIX = re.compile(r"\s+[-–—|]\s+[^-–—|]{2,40}$")
 _PREFIX = re.compile(
     r"^(?:exclusive|exclusif|revealed|breaking|update|rare alert|uncooked alert|"
     r"palmar[èe]s|flash|le point|[àa]\s+suivre|valeurs?\s+[àa]\s+suivre|"
-    r"point\s+(?:march[ée]|bourse)|zoom)\s*:?\s*",
+    r"point\s+(?:march[ée]|bourse)|zoom|l['’]action)\s*:?\s*",
     re.I,
 )
 
 _PATTERNS = [
     # Sujet en tete qui ACCEPTE une offre -> c'est la cible (FR 'accepte', EN 'accepts')
     re.compile(rf"^({_PHRASE})\s+(?:accepte|a\s+accept[ée]e?|accepts)\b"),
-    re.compile(rf"\b(?:bid|offer|approach|takeover|tender offer)\s+(?:for|of)\s+(?:the\s+)?({_PHRASE})"),
-    re.compile(rf"\b(?:to\s+)?acquire\s+(?:the\s+)?({_PHRASE})"),
-    re.compile(rf"\b(?:stake|interest)\s+in\s+(?:the\s+)?({_PHRASE})"),
-    re.compile(rf"\bbidding\s+for\s+(?:the\s+)?({_PHRASE})"),
-    re.compile(rf"\b(?:buys?|buyout of|takeover of)\s+(?:the\s+)?({_PHRASE})"),
-    re.compile(rf"\bsur\s+(?:la\s+soci[ée]t[ée]\s+)?({_PHRASE})"),
-    re.compile(rf"\b(?:rachat|acquisition|prise de participation)\s+(?:de|d'|d’|dans)\s+({_PHRASE})"),
+    re.compile(rf"\b(?:bid|offer|approach|takeover|tender offer)\s+(?:for|of)\s+(?:the\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\b(?:to\s+)?acquire\s+(?:the\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\b(?:stake|interest)\s+in\s+(?:the\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\bbidding\s+for\s+(?:the\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\b(?:buys?|buyout of|takeover of)\s+(?:the\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\bsur\s+(?:la\s+soci[ée]t[ée]\s+)?({_PHRASE})", re.I),
+    re.compile(rf"\b(?:rachat|acquisition|prise de participation)\s+(?:de|d'|d’|dans)\s+({_PHRASE})", re.I),
 ]
 _LEADING = re.compile(rf"^({_PHRASE})")
 
@@ -153,6 +154,19 @@ def publisher_name(title: str, url: str = "") -> str:
         if host and "google" not in host:   # news.google.com = redirection, pas l'editeur
             parts.append(host)
     return " ".join(parts).lower()
+
+
+def strip_source_suffix(title: str) -> str:
+    """Retire jusqu'à 2 segments ' - Éditeur' finaux (Google News met parfois
+    'Titre - Rubrique - Éditeur') -> evite l'injection du nom de source dans la
+    classification (ex: '... - Profit Warning Alert - newsline.com')."""
+    t = title or ""
+    for _ in range(2):
+        nt = _SOURCE_SUFFIX.sub("", t).strip()
+        if nt == t:
+            break
+        t = nt
+    return t
 
 
 def clean_html(text: str) -> str:

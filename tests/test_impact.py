@@ -56,3 +56,14 @@ def test_build_report_verdicts_and_unresolved():
     assert rep["n_confirmed"] == 2
     assert rep["hit_rate"] == 100      # 2/2 notés confirmés
     assert rep["n_unresolved"] == 1
+
+
+def test_refine_expected_collapse_and_acquirer():
+    from ma_signals.impact import refine_expected
+    # offre retiree -> baisse attendue (EN + FR)
+    assert refine_expected("possible_offer", "Bodycote", "Bodycote shares fall as Apollo walks away from takeover") == -1
+    assert refine_expected("possible_offer", "Bodycote", "L'action Bodycote chute après le retrait de l'offre d'Apollo") == -1
+    # acquereur (sujet) -> ambigu, pas de verdict
+    assert refine_expected("tender_offer", "UniCredit", "UniCredit augmente sa participation dans Commerzbank (OPA hostile)") == 0
+    # cible classique -> hausse
+    assert refine_expected("merger_agt", "Micromeritics", "Spectris agrees to acquire Micromeritics") == 1
