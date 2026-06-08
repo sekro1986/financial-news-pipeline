@@ -37,7 +37,8 @@ def test_unexplained_move_promoted():
         m = s.query(Signal).filter_by(dedup_key="px1").first()
     assert _FLAG in m.matched_keywords
     assert m.score == 4 + settings.unexplained_bonus
-    assert m.alerted == 1
+    assert m.status == "en_attente"   # promu -> sera envoye au prochain dispatch
+    assert m.alerted == 0
 
 
 def test_explained_move_not_flagged():

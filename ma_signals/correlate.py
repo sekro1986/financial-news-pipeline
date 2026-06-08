@@ -57,8 +57,9 @@ def mark_unexplained_moves(seed: bool = False) -> list[Signal]:
             # inexplique -> marqueur + bonus
             m.matched_keywords = ((m.matched_keywords + ",") if m.matched_keywords else "") + _FLAG
             m.score += settings.unexplained_bonus
-            if not seed and m.score >= threshold and not m.alerted:
-                m.alerted = 1
+            if not seed and m.score >= threshold and m.status not in ("envoye", "en_attente"):
+                m.status = "en_attente"   # -> sera envoye par le prochain dispatch
+                m.alerted = 0
                 newly_alertable.append(m)
         # NB: SessionLocal a expire_on_commit=False -> les objets restent lisibles
         # apres la fermeture de session (pas d'expunge, sinon les modifs ne sont

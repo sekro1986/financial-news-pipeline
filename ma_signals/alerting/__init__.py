@@ -1,6 +1,7 @@
 """Couche d'alerting : regroupe les signaux en messages DIGEST (anti-429)."""
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import time
 
@@ -64,6 +65,19 @@ def _send_all(message: str) -> bool:
     return ok
 
 
+def get_pending_alerts() -> list[Signal]:
+    """Signaux en attente d'envoi (statut en_attente), tri par score décroissant.
+    Inclut les reliquats des cycles précédents -> report automatique (anti-perte)."""
+    from sqlalchemy import select
+    from ..db import get_session
+    with get_session() as session:
+        rows = session.scalars(
+            select(Signal).where(Signal.status == "en_attente").order_by(Signal.score.desc())
+        ).all()
+        session.expunge_all()
+        return list(rows)
+
+
 def send_message(text: str) -> bool:
     """Envoie un message libre sur les canaux configures (recap hebdo, etc.)."""
     return _send_all(text)
@@ -93,10 +107,13 @@ def dispatch(signals: list[Signal]) -> None:
             time.sleep(settings.telegram_send_delay)
 
     if all_sent:
+        now = dt.datetime.now(dt.timezone.utc)
         ids = [s.id for s in signals]
         with get_session() as session:
             for sid in ids:
                 obj = session.get(S, sid)
                 if obj:
                     obj.alerted = 1
+                    obj.status = "envoye"
+                    obj.sent_at = now
         log.info("digest envoye : %d signaux en %d message(s).", len(signals), len(messages))

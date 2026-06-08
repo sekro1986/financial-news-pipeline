@@ -12,7 +12,7 @@ import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import func, select
 
-from .alerting import dispatch
+from .alerting import dispatch, get_pending_alerts
 from .collectors import build_enabled
 from .config import settings
 from .db import SessionLocal, init_db
@@ -41,20 +41,22 @@ def run_cycle(seed: bool = False) -> int:
         c.close()
 
     log.info("cycle: %d items collectes au total", len(all_items))
-    new_alerts = process_items(all_items, seed=seed)
+    process_items(all_items, seed=seed)
     if seed:
         # On annote quand meme les mouvements inexpliques en silence (sans alerter).
         mark_unexplained_moves(seed=True)
         log.info("SEED initial : backlog enregistre en silence (aucune alerte envoyee).")
         return 0
-    # Correlation news<->prix : promeut d'eventuels mouvements inexpliques en alerte.
-    extra = mark_unexplained_moves(seed=False)
-    if extra:
-        log.info("cycle: %d mouvement(s) inexplique(s) promu(s) en alerte", len(extra))
-    all_alerts = new_alerts + extra
-    dispatch(all_alerts)
-    log.info("cycle: %d nouvelles alertes", len(all_alerts))
-    return len(all_alerts)
+    # Correlation news<->prix : promeut d'eventuels mouvements inexpliques (-> en_attente).
+    promoted = mark_unexplained_moves(seed=False)
+    if promoted:
+        log.info("cycle: %d mouvement(s) inexplique(s) promu(s)", len(promoted))
+    # On envoie TOUS les signaux en attente (nouveaux + reliquats des cycles precedents :
+    # report automatique, plus de perte au-dela du plafond).
+    pending = get_pending_alerts()
+    dispatch(pending)
+    log.info("cycle: %d signaux en attente (plafond/cycle: %d)", len(pending), settings.max_alerts_per_cycle)
+    return len(pending)
 
 
 def main() -> None:

@@ -31,6 +31,11 @@ def _ensure_columns() -> None:
         if "story_key" not in cols:
             conn.execute(text("ALTER TABLE signals ADD COLUMN story_key VARCHAR(128) DEFAULT ''"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_signals_story_key ON signals (story_key)"))
+        if "status" not in cols:
+            conn.execute(text("ALTER TABLE signals ADD COLUMN status VARCHAR(16) DEFAULT ''"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_signals_status ON signals (status)"))
+        if "sent_at" not in cols:
+            conn.execute(text("ALTER TABLE signals ADD COLUMN sent_at DATETIME"))
 
 
 def init_db() -> None:

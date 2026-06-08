@@ -103,7 +103,13 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
 
             threshold = family_threshold(family_of(c.event_type))
             is_alertable = c.score >= threshold
-            alerted_flag = 1 if (seed or not is_alertable) else 0
+            # Cycle de vie : amorce (seed) / en_attente (à envoyer) / sous_seuil (détecté).
+            if seed:
+                status, alerted_flag = "amorce", 1
+            elif is_alertable:
+                status, alerted_flag = "en_attente", 0
+            else:
+                status, alerted_flag = "sous_seuil", 1
             sig = Signal(
                 dedup_key=c.item.dedup_key,
                 story_key=c.story_key,
@@ -117,6 +123,7 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 matched_keywords=",".join(c.matched),
                 published_at=c.item.published_at,
                 alerted=alerted_flag,
+                status=status,
             )
             session.add(sig)
             session.flush()

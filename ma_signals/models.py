@@ -47,7 +47,13 @@ class Signal(Base):
         DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc), index=True
     )
 
-    alerted: Mapped[int] = mapped_column(Integer, default=0)  # 0 = pas encore notifié, 1 = notifié
+    alerted: Mapped[int] = mapped_column(Integer, default=0)  # legacy : 1 = ne nécessite plus d'envoi
+
+    # Cycle de vie de l'alerte (tracabilite fine) :
+    #   sous_seuil = détecté sous le seuil (jamais envoyé) ; en_attente = à envoyer ;
+    #   envoye = poussé sur un canal ; amorce = seeding initial silencieux.
+    status: Mapped[str] = mapped_column(String(16), default="", index=True)
+    sent_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     def to_dict(self) -> dict:
         return {
@@ -64,6 +70,8 @@ class Signal(Base):
             "published_at": self.published_at.isoformat() if self.published_at else None,
             "detected_at": self.detected_at.isoformat() if self.detected_at else None,
             "alerted": bool(self.alerted),
+            "status": self.status,
+            "sent_at": self.sent_at.isoformat() if self.sent_at else None,
         }
 
 

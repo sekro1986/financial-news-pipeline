@@ -17,10 +17,10 @@ def _seed():
         # Big Mover : alerté (capté) ; Mid Co : détecté sous le seuil ; Quiet : rien
         s.add(Signal(dedup_key="b1", story_key="x", source="press_rss", event_type="redemption_gating",
                      company="Big Mover AB", title="Big Mover AB limits fund redemptions",
-                     score=8, alerted=1, detected_at=NOW - dt.timedelta(days=2)))
+                     score=8, alerted=1, status="envoye", detected_at=NOW - dt.timedelta(days=2)))
         s.add(Signal(dedup_key="m1", story_key="y", source="press_rss", event_type="generic",
                      company="Mid Co", title="Mid Co mentioned in passing",
-                     score=4, alerted=0, detected_at=NOW - dt.timedelta(days=1)))
+                     score=4, alerted=1, status="sous_seuil", detected_at=NOW - dt.timedelta(days=1)))
 
 
 def _fake_price(sym, days):
