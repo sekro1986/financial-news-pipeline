@@ -137,6 +137,24 @@ def guess_company(title: str) -> str:
     return ""
 
 
+_PUB_SUFFIX = re.compile(r"[-–—|]\s*([^-–—|]{2,40})\s*$")
+
+
+def publisher_name(title: str, url: str = "") -> str:
+    """Identifie l'editeur : suffixe ' - Source' du titre + hote de l'URL (hors
+    redirections Google News). Sert au filtrage par qualite de source."""
+    parts = []
+    m = _PUB_SUFFIX.search(title or "")
+    if m:
+        parts.append(m.group(1).strip())
+    if url:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc.lower().replace("www.", "")
+        if host and "google" not in host:   # news.google.com = redirection, pas l'editeur
+            parts.append(host)
+    return " ".join(parts).lower()
+
+
 def clean_html(text: str) -> str:
     if not text:
         return ""

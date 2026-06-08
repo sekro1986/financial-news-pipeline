@@ -23,9 +23,38 @@ def _format_block(sig: Signal) -> str:
     return line
 
 
+# Ordre et libelles d'affichage des familles dans le digest.
+_FAMILY_ORDER = ["mna", "anticipation", "liquidity", "distress", "earnings",
+                 "governance", "regulatory", "capital", "market", "generic"]
+_FAMILY_LABELS = {
+    "mna": "🤝 M&A / contrôle", "anticipation": "🎯 Anticipation (proies)",
+    "liquidity": "💧 Liquidité / fonds", "distress": "🔥 Détresse",
+    "earnings": "📉 Résultats / guidance", "governance": "🏛️ Gouvernance / intégrité",
+    "regulatory": "⚖️ Réglementaire / légal", "capital": "💰 Capital",
+    "market": "📈 Marché (prix)", "generic": "• Divers",
+}
+
+
 def _build_messages(signals: list[Signal], truncated: int) -> list[str]:
-    header = f"ALERTE {len(signals)} signal(aux) M&A (score >= {settings.alert_min_score})"
-    blocks = [_format_block(s) for s in signals]
+    from ..classifier import family_of
+
+    header = f"📊 {len(signals)} signal(aux) détecté(s)"
+
+    # Regroupement par famille (chaque groupe trié par score décroissant).
+    groups: dict[str, list[Signal]] = {}
+    for sig in signals:
+        groups.setdefault(family_of(sig.event_type), []).append(sig)
+    ordered = [f for f in _FAMILY_ORDER if f in groups] + [f for f in groups if f not in _FAMILY_ORDER]
+
+    blocks: list[str] = []
+    for fam in ordered:
+        sigs = sorted(groups[fam], key=lambda s: s.score, reverse=True)
+        fam_header = f"— {_FAMILY_LABELS.get(fam, fam)} ({len(sigs)}) —"
+        for j, sig in enumerate(sigs):
+            block = _format_block(sig)
+            if j == 0:
+                block = fam_header + "\n" + block
+            blocks.append(block)
 
     chunks: list[list[str]] = []
     current: list[str] = []

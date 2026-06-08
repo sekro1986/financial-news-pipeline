@@ -95,6 +95,10 @@ class Settings(BaseSettings):
     # --- Filtre watchlist optionnel (tickers/sociétés, CSV) ---
     watchlist: str = ""
 
+    # --- Filtrage par qualite de source (denylist d'editeurs/domaines), CSV ---
+    # Sous-chaines (insensibles a la casse) ; un signal dont l'editeur matche est ecarte.
+    source_denylist: str = "mshale,streamlinefeed,asatunews,sekbernews,newsline.com"
+
     # --- Watchlist d'emetteurs surveilles (pivot ad-hoc + prix), fichier de seed ---
     watchlist_file: str = "watchlist.yaml"
     # Cle OpenFIGI optionnelle (releve la limite de debit ; non requise).
@@ -122,6 +126,10 @@ class Settings(BaseSettings):
     @property
     def press_query_list(self) -> list[str]:
         return [q.strip() for q in self.press_queries.split("|") if q.strip()]
+
+    @property
+    def source_deny_list(self) -> list[str]:
+        return [x.strip().lower() for x in self.source_denylist.split(",") if x.strip()]
 
     @property
     def curated_source_list(self) -> list[str]:

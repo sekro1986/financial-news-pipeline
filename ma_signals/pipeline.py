@@ -10,7 +10,7 @@ from .config import settings
 from .db import get_session
 from .classifier import family_of, family_threshold
 from .dedup import story_key
-from .extract import clean_html, guess_company
+from .extract import clean_html, guess_company, publisher_name
 from .watchlist import active_entries
 from .models import Signal
 from .schema import RawItem
@@ -62,6 +62,13 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
         for item in items:
             if not _passes_watchlist(item):
                 continue
+
+            # Filtrage par qualite de source (clickbait / content-farms)
+            deny = settings.source_deny_list
+            if deny:
+                pub = publisher_name(item.title, item.url)
+                if pub and any(d in pub for d in deny):
+                    continue
 
             cls = classify(item.text)
             score = cls.score
