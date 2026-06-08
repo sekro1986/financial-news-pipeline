@@ -12,7 +12,8 @@ import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import func, select
 
-from .alerting import dispatch, get_pending_alerts
+from .alerting import dispatch, get_pending_alerts, silence_pending
+from .classifier import family_of
 from .collectors import build_enabled
 from .config import settings
 from .db import SessionLocal, init_db
@@ -54,9 +55,25 @@ def run_cycle(seed: bool = False) -> int:
     # On envoie TOUS les signaux en attente (nouveaux + reliquats des cycles precedents :
     # report automatique, plus de perte au-dela du plafond).
     pending = get_pending_alerts()
-    dispatch(pending)
-    log.info("cycle: %d signaux en attente (plafond/cycle: %d)", len(pending), settings.max_alerts_per_cycle)
-    return len(pending)
+    if not pending:
+        return 0
+    if not settings.alerts_enabled:
+        # MODE OBSERVATION : rien n'est envoye en live, tout est capte en sourdine.
+        silence_pending(pending)
+        log.info("cycle: MODE OBSERVATION -> %d signaux captés en sourdine (aucune alerte live)",
+                 len(pending))
+        return 0
+    allow = settings.alert_only_family_list
+    if allow:   # reouverture selective : on n'alerte que certaines familles
+        to_send = [s for s in pending if family_of(s.event_type) in allow]
+        to_silence = [s for s in pending if family_of(s.event_type) not in allow]
+    else:
+        to_send, to_silence = pending, []
+    dispatch(to_send)
+    silence_pending(to_silence)
+    log.info("cycle: %d alertes envoyées, %d en sourdine (plafond/cycle: %d)",
+             len(to_send), len(to_silence), settings.max_alerts_per_cycle)
+    return len(to_send)
 
 
 def main() -> None:

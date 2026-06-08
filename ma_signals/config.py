@@ -48,6 +48,15 @@ class Settings(BaseSettings):
     story_dedup: bool = True
     story_window_hours: int = 48
 
+    # --- Mode d'envoi des alertes ---
+    # alerts_enabled=False -> MODE OBSERVATION : le pipeline capte/score/analyse tout
+    # (les signaux passent en statut 'silencieux'), mais AUCUNE alerte live n'est
+    # envoyee. Le rapport quotidien d'impact + le scorecard restent envoyes.
+    alerts_enabled: bool = True
+    # Si alerts_enabled : n'alerter en live QUE ces familles (CSV) ; vide = toutes.
+    # Permet une reouverture progressive (ex: 'mna,liquidity') quand le scorecard valide.
+    alert_only_families: str = ""
+
     # --- Garde-fous anti-spam ---
     max_alerts_per_cycle: int = 25
     alert_batch_size: int = 8
@@ -134,6 +143,10 @@ class Settings(BaseSettings):
     @property
     def source_deny_list(self) -> list[str]:
         return [x.strip().lower() for x in self.source_denylist.split(",") if x.strip()]
+
+    @property
+    def alert_only_family_list(self) -> list[str]:
+        return [x.strip().lower() for x in self.alert_only_families.split(",") if x.strip()]
 
     @property
     def curated_source_list(self) -> list[str]:

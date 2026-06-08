@@ -91,7 +91,7 @@ def build_report(days: int = 7, top: int = 10, price_fn=None) -> dict:
             if not mv:
                 continue
             sigs = _signals_for(session, e.match_terms, cutoff)
-            sent = [s for s in sigs if s.status == "envoye"]
+            sent = [s for s in sigs if s.status in ("envoye", "silencieux")]
             if sent:
                 status, icon = "capté", "✅"
             elif sigs:

@@ -107,6 +107,24 @@ def get_pending_alerts() -> list[Signal]:
         return list(rows)
 
 
+def silence_pending(signals: list[Signal]) -> None:
+    """Mode observation : marque des signaux comme 'silencieux' (captés/analysés mais
+    NON envoyés) -> ne polluent plus la file d'attente et restent traçables."""
+    if not signals:
+        return
+    import datetime as dt
+    from ..db import get_session
+    now = dt.datetime.now(dt.timezone.utc)
+    with get_session() as session:
+        for sig in signals:
+            obj = session.get(Signal, sig.id)
+            if obj:
+                obj.status = "silencieux"
+                obj.alerted = 1
+                obj.sent_at = obj.sent_at or now
+    log.info("%d signal(aux) capté(s) en sourdine (mode observation).", len(signals))
+
+
 def send_message(text: str) -> bool:
     """Envoie un message libre sur les canaux configures (recap hebdo, etc.)."""
     return _send_all(text)
