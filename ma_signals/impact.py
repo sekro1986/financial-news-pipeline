@@ -151,10 +151,14 @@ def price_reaction(symbol: str, signal_date: dt.date, price_fn=None) -> dict | N
         return None
     before = [c for d, c in series if d < signal_date]
     ref = before[-1] if before else series[0][1]
-    last = series[-1][1]
+    last_date, last = series[-1]
     if not ref:
         return None
-    return {"pct_since": (last - ref) / ref * 100.0, "ref": ref, "last": last}
+    # reaction du JOUR du signal (clôture J vs clôture J-1)
+    day_close = next((c for d, c in series if d == signal_date), None)
+    pct_day = (day_close - ref) / ref * 100.0 if day_close else None
+    return {"pct_since": (last - ref) / ref * 100.0, "pct_day": pct_day,
+            "ref": ref, "last": last, "last_date": last_date.isoformat()}
 
 
 def _verdict(expected: int, pct: float, thr: float) -> str:
@@ -211,20 +215,22 @@ def build_report(day: dt.date | None = None, resolve_fn=None, price_fn=None,
             if not symbol:
                 rows.append({"company": sig.company, "symbol": "", "resolved_by": "",
                              "event_type": sig.event_type, "family": fam, "expected_dir": expected,
-                             "pct_since": 0.0, "verdict": "non_résolu", "signal_id": sig.id,
-                             "title": sig.title})
+                             "pct_since": 0.0, "pct_day": None, "last_date": "",
+                             "verdict": "non_résolu", "signal_id": sig.id, "title": sig.title})
                 continue
             pr = price_reaction(symbol, day, price_fn=price_fn)
             if not pr:
                 rows.append({"company": sig.company, "symbol": symbol, "resolved_by": by,
                              "event_type": sig.event_type, "family": fam, "expected_dir": expected,
-                             "pct_since": 0.0, "verdict": "non_résolu", "signal_id": sig.id,
-                             "title": sig.title})
+                             "pct_since": 0.0, "pct_day": None, "last_date": "",
+                             "verdict": "non_résolu", "signal_id": sig.id, "title": sig.title})
                 continue
             pct = pr["pct_since"]
             rows.append({"company": sig.company, "symbol": symbol, "resolved_by": by,
                          "event_type": sig.event_type, "family": fam, "expected_dir": expected,
-                         "pct_since": pct, "verdict": _verdict(expected, pct, thr),
+                         "pct_since": pct, "pct_day": pr.get("pct_day"),
+                         "last_date": pr.get("last_date", ""),
+                         "verdict": _verdict(expected, pct, thr),
                          "signal_id": sig.id, "title": sig.title})
 
     graded = [r for r in rows if r["verdict"] in ("confirmé", "infirmé")]
@@ -246,9 +252,15 @@ def render_markdown(rep: dict) -> str:
          f"· non résolus {rep['n_unresolved']} → **fiabilité {rep['hit_rate']}%** (sur les signaux notés)", ""]
     for r in sorted(rep["rows"], key=lambda x: (x["verdict"] != "infirmé", x["verdict"] != "confirmé")):
         sym = r["symbol"] or "?"
+        if r["verdict"] == "non_résolu":
+            move = "—"
+        else:
+            day = f"{r['pct_day']:+.1f}%" if r.get("pct_day") is not None else "n/d"
+            cum = f"{r['pct_since']:+.1f}%"
+            ld = f" au {r['last_date']}" if r.get("last_date") else ""
+            move = f"jour {day} · cumulé {cum}{ld}"
         L.append(f"{_ICON.get(r['verdict'],'?')} **{r['company']}** ({sym}) "
-                 f"{r['event_type']} attendu {_ARROW[r['expected_dir']]} → "
-                 f"{r['pct_since']:+.1f}% — {r['verdict']}")
+                 f"{r['event_type']} attendu {_ARROW[r['expected_dir']]} → {move} — {r['verdict']}")
     unres = [r for r in rep["rows"] if r["verdict"] == "non_résolu"]
     if unres:
         L += ["", "## Non résolus (à ajouter à la watchlist pour un suivi fiable)",
@@ -260,7 +272,10 @@ def _telegram_summary(rep: dict) -> str:
     head = (f"🔎 IMPACT signaux du {rep['day']} — {rep['n']} analysés\n"
             f"confirmés {rep['n_confirmed']} · infirmés {rep['n_infirmed']} · "
             f"non résolus {rep['n_unresolved']} (fiabilité {rep['hit_rate']}%)\n")
-    body = [f"{_ICON.get(r['verdict'],'?')} {r['company']} {r['event_type']} {r['pct_since']:+.1f}%"
+    def _mv(r):
+        d = f"{r['pct_day']:+.1f}%" if r.get("pct_day") is not None else "n/d"
+        return f"J {d}/cum {r['pct_since']:+.1f}%"
+    body = [f"{_ICON.get(r['verdict'],'?')} {r['company']} {r['event_type']} {_mv(r)}"
             for r in rep["rows"] if r["verdict"] in ("confirmé", "infirmé")][:15]
     return head + "\n".join(body)
 

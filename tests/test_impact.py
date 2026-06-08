@@ -42,8 +42,8 @@ def _resolve(company, text):
 
 
 def _price(symbol, day):
-    return {"GT": {"pct_since": 12.0, "ref": 100, "last": 112},     # a bondi -> confirmé
-            "BAD": {"pct_since": -9.0, "ref": 100, "last": 91}}[symbol]   # a chuté -> confirmé
+    return {"GT": {"pct_since": 12.0, "pct_day": 8.0, "ref": 100, "last": 112, "last_date": "2026-06-08"},
+            "BAD": {"pct_since": -9.0, "pct_day": -6.0, "ref": 100, "last": 91, "last_date": "2026-06-08"}}[symbol]
 
 
 def test_build_report_verdicts_and_unresolved():
