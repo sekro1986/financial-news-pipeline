@@ -11,6 +11,7 @@ from .db import get_session
 from .classifier import family_of, family_threshold
 from .dedup import story_key
 from .extract import clean_html, guess_company
+from .watchlist import active_entries
 from .models import Signal
 from .schema import RawItem
 
@@ -53,6 +54,9 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
     to_alert: list[Signal] = []
 
     with get_session() as session:
+        # Resolveur d'entite : (nom canonique, termes) des emetteurs surveilles.
+        wl_resolver = [(e.canonical, e.match_terms) for e in active_entries()]
+
         # --- Etape 1 : classification + filtres item-level ---
         candidates: list[_Candidate] = []
         for item in items:
@@ -76,6 +80,14 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
 
             event_type = item.event_hint or cls.event_type
             company = (item.company or guess_company(item.title))[:256]
+            # Canonicalisation : si le texte matche un emetteur surveille, on force
+            # son nom de reference -> clé de dedup stable (cross-source / cross-langue).
+            if wl_resolver:
+                low = item.text.lower()
+                for canon, terms in wl_resolver:
+                    if any(t and t in low for t in terms):
+                        company = canon[:256]
+                        break
             summary = clean_html(item.summary)[:4000]
             sk = story_key(company, event_type, item.title)
             candidates.append(

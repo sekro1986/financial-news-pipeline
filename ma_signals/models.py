@@ -116,6 +116,11 @@ class WatchlistEntry(Base):
                    "holdings", "oyj", "spa", "gmbh", "as", "a/s"}
 
     @property
+    def canonical(self) -> str:
+        """Nom de référence (forme légale conservée) pour un affichage/dedup stable."""
+        return self.name
+
+    @property
     def match_terms(self) -> list[str]:
         """Termes (minuscule) servant a reconnaitre l'emetteur dans un texte :
         nom complet, alias, ticker, ISIN + 'nom de marche' (suffixes sociaux retires,
