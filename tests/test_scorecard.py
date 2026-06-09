@@ -47,3 +47,24 @@ def test_scorecard_aggregates():
     assert me["graded"] == 3 and me["hit_rate"] == 67
     gov = sc["by_family"]["governance"]
     assert gov["hit_rate"] is None and gov["unresolved"] == 1   # que du non_résolu
+
+
+def test_top_unresolved_recurrents():
+    init_db()
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+    with get_session() as s:
+        # Wetherspoons non résolu 3x (récurrent = vrai candidat watchlist) ; Greensill 1x
+        for i in range(3):
+            s.add(SignalOutcome(signal_id=0, signal_date=f"2026-06-0{i+1}", company="Wetherspoons",
+                                symbol="", event_type="profit_warning", family="earnings",
+                                verdict="non_résolu", pct_since=0.0, run_at=now))
+        s.add(SignalOutcome(signal_id=0, signal_date="2026-06-05", company="Lex Greensill",
+                            symbol="", event_type="insolvency", family="distress",
+                            verdict="non_résolu", pct_since=0.0, run_at=now))
+    sc = build_scorecard(days=None)
+    top = dict(sc["top_unresolved"])
+    assert top["Wetherspoons"] == 3
+    assert top["Lex Greensill"] == 1
+    # Wetherspoons (récurrent) doit être devant
+    assert sc["top_unresolved"][0][0] == "Wetherspoons"

@@ -23,6 +23,7 @@ _STOP = {
     "opa", "opr", "european", "american", "british", "french", "german",
     "asian", "global", "national", "international", "us-based", "uk-based",
     "nearly", "repli", "immobilier", "palmar[èe]s", "palmares", "palmarès", "action", "here", "here's",
+    "les", "des", "une", "york", "selon", "face",
 }
 
 # Mots d'action marquant la FIN d'un nom dans un titre Title-Case (EN) / accroche (FR)

@@ -49,8 +49,16 @@ def build_scorecard(days: int | None = 90) -> dict:
 
     events = {k: _agg(v) for k, v in by_event.items()}
     families = {k: _agg(v) for k, v in by_family.items()}
+    # Non-résolus récurrents : un nom qui revient souvent = probablement une vraie
+    # société cotée à ajouter à la watchlist (vs one-shot = junk/privé à ignorer).
+    unres: dict[str, int] = defaultdict(int)
+    for r in rows:
+        if r.verdict == "non_résolu" and r.company:
+            unres[r.company] += 1
+    top_unres = sorted(unres.items(), key=lambda kv: kv[1], reverse=True)
     return {"days": days, "total": len(rows), "n_runs": len({r.signal_date for r in rows}),
-            "by_event": events, "by_family": families}
+            "by_event": events, "by_family": families,
+            "top_unresolved": top_unres, "n_unresolved": sum(unres.values())}
 
 
 def render_markdown(sc: dict) -> str:
@@ -70,6 +78,12 @@ def render_markdown(sc: dict) -> str:
 
     L += _section("Par famille", sc["by_family"]) + [""]
     L += _section("Par type d'événement", sc["by_event"])
+    recur = [(c, n) for c, n in sc.get("top_unresolved", []) if n >= 2]
+    if recur:
+        L += ["", "## Non résolus récurrents (candidats watchlist)",
+              "_Reviennent souvent → probablement de vraies cotées à ajouter (ISIN) ; "
+              "les noms à 1 occurrence sont surtout du junk/privé._", ""]
+        L += [f"- {c} ({n}×)" for c, n in recur[:15]]
     return "\n".join(L)
 
 
@@ -80,6 +94,9 @@ def _telegram_summary(sc: dict) -> str:
     fam = sorted(sc["by_family"].items(), key=lambda kv: kv[1]["graded"], reverse=True)
     body = [f"{k}: {a['hit_rate']}% fiab. (n={a['graded']}, moy {a['avg_pct']:+.1f}%)"
             for k, a in fam if a["hit_rate"] is not None]
+    recur = [c for c, n in sc.get("top_unresolved", []) if n >= 2][:5]
+    if recur:
+        body.append("À ajouter watchlist ? " + ", ".join(recur))
     return head + "\n".join(body)
 
 
