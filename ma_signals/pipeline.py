@@ -15,6 +15,7 @@ from .watchlist import active_entries
 from . import llm
 from .models import Signal
 from .schema import RawItem
+from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("ma_signals.pipeline")
 
@@ -124,9 +125,22 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                            llm_conf=enr.confidence if enr else None)
             )
 
-        # --- Etape 2 : dedup "histoire" intra-cycle (garde le meilleur score) ---
-        best_by_story: dict[str, _Candidate] = {}
+        # --- Etape 2a : dedup par dedup_key INTRA-cycle ---
+        # Le MEME article peut apparaitre 2x dans un lot avec des titres differents
+        # (ex EDGAR : un SC 13D/A est liste cote 'Subject' ET cote 'Filed by' avec
+        # le meme AccNo -> meme dedup_key mais story_keys differents). Sans ce
+        # regroupement, le 2e INSERT violait uq_signals_dedup et le rollback
+        # annulait TOUT le cycle (panne silencieuse du 09/06/2026 : le poller
+        # tournait mais plus aucun signal n'etait persiste).
+        best_by_key: dict[str, _Candidate] = {}
         for c in candidates:
+            kept = best_by_key.get(c.item.dedup_key)
+            if kept is None or c.score > kept.score:
+                best_by_key[c.item.dedup_key] = c
+
+        # --- Etape 2b : dedup "histoire" intra-cycle (garde le meilleur score) ---
+        best_by_story: dict[str, _Candidate] = {}
+        for c in best_by_key.values():
             kept = best_by_story.get(c.story_key)
             if kept is None or c.score > kept.score:
                 best_by_story[c.story_key] = c
@@ -170,8 +184,17 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 alerted=alerted_flag,
                 status=status,
             )
-            session.add(sig)
-            session.flush()
+            # Filet de securite : une collision residuelle (course inter-process,
+            # contrainte inattendue) ne doit JAMAIS faire perdre le cycle entier.
+            # SAVEPOINT par insertion -> on ignore l'item fautif et on continue.
+            try:
+                with session.begin_nested():
+                    session.add(sig)
+                    session.flush()
+            except IntegrityError:
+                log.warning("insertion ignoree (dedup_key deja present) : %s | %s",
+                            c.item.dedup_key, c.item.title[:100])
+                continue
             if is_alertable and not seed:
                 to_alert.append(sig)
 

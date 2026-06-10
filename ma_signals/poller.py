@@ -12,7 +12,7 @@ import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import func, select
 
-from .alerting import dispatch, get_pending_alerts, silence_pending
+from .alerting import dispatch, get_pending_alerts, send_message, silence_pending
 from .classifier import family_of
 from .collectors import build_enabled
 from .config import settings
@@ -76,6 +76,30 @@ def run_cycle(seed: bool = False) -> int:
     return len(to_send)
 
 
+# --- Watchdog : plus jamais de panne silencieuse ---
+# Le 09/06/2026, le poller restait 'active (running)' alors que chaque cycle
+# echouait (rollback) : rien en base, rien dans Telegram, decouvert le lendemain
+# via le rapport d'impact vide. Desormais : apres _WATCHDOG_AFTER echecs
+# CONSECUTIFS, UNE alerte Telegram part (pas de spam : une seule par episode).
+_WATCHDOG_AFTER = 3
+_fail_streak = 0
+
+
+def safe_cycle() -> None:
+    global _fail_streak
+    try:
+        run_cycle()
+        _fail_streak = 0
+    except Exception:  # noqa: BLE001
+        _fail_streak += 1
+        log.exception("cycle en echec (%d consecutif(s))", _fail_streak)
+        if _fail_streak == _WATCHDOG_AFTER:
+            send_message(
+                "⚠️ MA-Signals : {} cycles consécutifs en échec — le poller tourne "
+                "mais ne persiste plus rien. Voir : journalctl -u masignals-poller".format(_WATCHDOG_AFTER)
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="MA-Signals poller")
     parser.add_argument("--once", action="store_true", help="execute un seul cycle puis quitte")
@@ -100,7 +124,7 @@ def main() -> None:
 
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(
-        run_cycle, "interval", seconds=settings.poll_interval_seconds,
+        safe_cycle, "interval", seconds=settings.poll_interval_seconds,
         max_instances=1, coalesce=True, id="collect_cycle",
     )
     scheduler.start()
