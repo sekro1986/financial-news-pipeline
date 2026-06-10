@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     # --- Sources activées (CSV) ---
     enabled_sources: str = "sec_edgar,rns_uk,amf_france,press_rss,rss_custom,disclosures,prices,adhoc_ir,screener,mfn"
 
+    # --- Enrichissement LLM (Claude Haiku) : entites + type + sens attendu ---
+    # Desactive par defaut ; necessite ANTHROPIC_API_KEY. Voir ma_signals/llm.py.
+    llm_enabled: bool = False
+    anthropic_api_key: str = ""
+    llm_model: str = "claude-haiku-4-5"
+    llm_min_score: int = 4          # pre-score regex minimal pour meriter un appel
+    llm_max_per_cycle: int = 80     # budget d'appels par cycle de collecte
+    llm_confidence_floor: int = 60  # sous ce niveau, l'enrichissement est ignore
+    llm_timeout: float = 25.0
+
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""

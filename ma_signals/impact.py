@@ -257,7 +257,10 @@ def build_report(day: dt.date | None = None, resolve_fn=None, price_fn=None,
                 break
             analyzed += 1
             fam = family_of(sig.event_type)
-            expected = refine_expected(sig.event_type, sig.company, sig.title)
+            # Sens attendu : l'avis LLM stocke au moment du signal (expected_move)
+            # prime ; sinon heuristiques historiques (refine_expected).
+            expected = (sig.expected_move if getattr(sig, "expected_move", None) is not None
+                        else refine_expected(sig.event_type, sig.company, sig.title))
             symbol, by = _resolve(sig.company, f"{sig.title} {sig.company}")
             if not symbol:
                 rows.append({"company": sig.company, "symbol": "", "resolved_by": "",

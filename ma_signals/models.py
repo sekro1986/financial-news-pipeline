@@ -39,6 +39,13 @@ class Signal(Base):
     url: Mapped[str] = mapped_column(Text, default="")
     summary: Mapped[str] = mapped_column(Text, default="")
 
+    # Renseignes par la couche LLM (ma_signals/llm.py) quand elle est active :
+    # acquirer = societe a l'initiative ; expected_move = sens attendu du cours de
+    # la cible (-1/0/+1, 0 = ambigu) ; None = pas d'avis LLM -> heuristiques impact.
+    acquirer: Mapped[str] = mapped_column(String(256), default="")
+    expected_move: Mapped[int | None] = mapped_column(Integer, default=None)
+    llm_confidence: Mapped[int | None] = mapped_column(Integer, default=None)
+
     score: Mapped[int] = mapped_column(Integer, index=True, default=0)
     matched_keywords: Mapped[str] = mapped_column(Text, default="")  # CSV des mots-clés trouvés
 
@@ -65,6 +72,9 @@ class Signal(Base):
             "title": self.title,
             "url": self.url,
             "summary": self.summary,
+            "acquirer": self.acquirer,
+            "expected_move": self.expected_move,
+            "llm_confidence": self.llm_confidence,
             "score": self.score,
             "matched_keywords": self.matched_keywords.split(",") if self.matched_keywords else [],
             "published_at": self.published_at.isoformat() if self.published_at else None,

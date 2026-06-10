@@ -12,6 +12,7 @@ from .classifier import family_of, family_threshold
 from .dedup import story_key
 from .extract import clean_html, guess_company, publisher_name, strip_source_suffix
 from .watchlist import active_entries
+from . import llm
 from .models import Signal
 from .schema import RawItem
 
@@ -35,6 +36,9 @@ class _Candidate:
     summary: str
     matched: list[str]
     story_key: str
+    acquirer: str = ""
+    expected: int | None = None     # sens attendu LLM (-1/0/+1) ; None = heuristiques
+    llm_conf: int | None = None
 
 
 def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
@@ -56,6 +60,8 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
     with get_session() as session:
         # Resolveur d'entite : (nom canonique, termes) des emetteurs surveilles.
         wl_resolver = [(e.canonical, e.match_terms) for e in active_entries()]
+
+        llm.reset_cycle()  # recharge le budget d'appels LLM pour ce lot
 
         # --- Etape 1 : classification + filtres item-level ---
         candidates: list[_Candidate] = []
@@ -88,8 +94,16 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
             if session.query(Signal).filter_by(dedup_key=item.dedup_key).first():
                 continue
 
-            event_type = item.event_hint or cls.event_type
-            company = (item.company or guess_company(item.title))[:256]
+            # --- Enrichissement LLM (optionnel) : cible/acquereur/type/sens attendu.
+            # Appele apres le dedup exact (on ne paie jamais 2x le meme article) ;
+            # None -> on retombe integralement sur les heuristiques historiques.
+            enr = llm.enrich(strip_source_suffix(item.title), item.summary) \
+                if llm.should_enrich(score) else None
+
+            # Priorites type : collecteur (event_hint, ex prix) > LLM > regex.
+            event_type = item.event_hint or (enr.event_type if enr and enr.event_type else cls.event_type)
+            # Priorites nom : collecteur (ex MFN/EDGAR, fiable) > LLM > heuristique.
+            company = (item.company or (enr.target if enr else "") or guess_company(item.title))[:256]
             # Canonicalisation : si le texte matche un emetteur surveille, on force
             # son nom de reference -> clé de dedup stable (cross-source / cross-langue).
             if wl_resolver:
@@ -98,10 +112,16 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                     if any(t and t in low for t in terms):
                         company = canon[:256]
                         break
+            matched = list(cls.matched)
+            if enr:
+                matched.append(enr.label)
             summary = clean_html(item.summary)[:4000]
             sk = story_key(company, event_type, item.title)
             candidates.append(
-                _Candidate(item, score, event_type, company, summary, cls.matched, sk)
+                _Candidate(item, score, event_type, company, summary, matched, sk,
+                           acquirer=enr.acquirer if enr else "",
+                           expected=enr.expected if enr else None,
+                           llm_conf=enr.confidence if enr else None)
             )
 
         # --- Etape 2 : dedup "histoire" intra-cycle (garde le meilleur score) ---
@@ -142,6 +162,9 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 url=c.item.url,
                 summary=c.summary,
                 score=c.score,
+                acquirer=c.acquirer,
+                expected_move=c.expected,
+                llm_confidence=c.llm_conf,
                 matched_keywords=",".join(c.matched),
                 published_at=c.item.published_at,
                 alerted=alerted_flag,

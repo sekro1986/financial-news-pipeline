@@ -36,6 +36,12 @@ def _ensure_columns() -> None:
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_signals_status ON signals (status)"))
         if "sent_at" not in cols:
             conn.execute(text("ALTER TABLE signals ADD COLUMN sent_at DATETIME"))
+        if "acquirer" not in cols:
+            conn.execute(text("ALTER TABLE signals ADD COLUMN acquirer VARCHAR(256) DEFAULT ''"))
+        if "expected_move" not in cols:
+            conn.execute(text("ALTER TABLE signals ADD COLUMN expected_move INTEGER"))
+        if "llm_confidence" not in cols:
+            conn.execute(text("ALTER TABLE signals ADD COLUMN llm_confidence INTEGER"))
 
 
 def init_db() -> None:

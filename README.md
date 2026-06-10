@@ -91,6 +91,17 @@ sudo systemctl enable --now masignals-poller masignals-api
 Sans canal d'alerte configuré, les signaux forts sont simplement **loggés** —
 pratique pour observer le système avant de brancher les notifications.
 
+## Enrichissement LLM (optionnel)
+
+Derrière le pré-filtre regex (gratuit, écarte ~95 % du bruit), une couche LLM
+(Claude Haiku) peut enrichir chaque item retenu : société **cible** vs
+**acquéreur**, type d'événement, **sens attendu** du cours et confiance. Ça
+fiabilise l'extraction de noms (titres Title-Case, FR/EN/DE/SV), la dédup
+cross-langue et les verdicts du rapport d'impact. Désactivé par défaut ;
+activer avec `LLM_ENABLED=true` + `ANTHROPIC_API_KEY` dans le `.env`
+(budget par cycle, coupe-circuit et repli automatique sur les heuristiques :
+sans clé ou en cas d'erreur API, le comportement historique est inchangé).
+
 ## Échelle de score
 
 | Score | Lecture |
