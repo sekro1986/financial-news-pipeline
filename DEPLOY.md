@@ -72,6 +72,26 @@ docker compose logs -f poller
 curl "http://localhost:8000/signals?min_score=8&limit=10"
 ```
 
+### Sauvegardes & supervision
+
+```bash
+# Backup quotidien (03:00) + healthcheck (15 min) :
+sudo cp deploy/masignals-backup.{service,timer} deploy/masignals-health.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now masignals-backup.timer masignals-health.timer
+
+# Backup manuel / verification :
+sudo -u masignals .venv/bin/python -m ma_signals.backup
+sudo -u masignals .venv/bin/python -m ma_signals.health
+```
+
+Les sauvegardes vont dans `backups/` (14 conservées, `BACKUP_KEEP`). Pense à les
+copier HORS de la VM (rsync/rclone vers un stockage distant). Le healthcheck
+alerte sur Telegram si le poller n'a plus de cycle réussi depuis 30 min
+(`HEARTBEAT_STALE_MINUTES`) ou si une source wire (`MONITORED_SOURCES`) n'a rien
+produit depuis 24 h (`SOURCE_SILENCE_HOURS`) — une alerte par épisode, plus un
+message de rétablissement.
+
 ### Sécurité de l'API
 
 Par défaut l'API écoute en `127.0.0.1` (service systemd) : rien n'est exposé hors

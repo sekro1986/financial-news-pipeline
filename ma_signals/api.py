@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime as dt
 import secrets
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from sqlalchemy import func, select
@@ -18,7 +19,13 @@ from .config import settings
 from .db import SessionLocal, init_db
 from .models import Signal
 
-app = FastAPI(title="MA-Signals API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="MA-Signals API", version="1.0.0", lifespan=lifespan)
 
 
 def require_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> None:
@@ -30,11 +37,6 @@ def require_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Ke
         return  # API ouverte (mode historique) : ne s'utilise qu'en 127.0.0.1
     if not (x_api_key and secrets.compare_digest(x_api_key, settings.api_key)):
         raise HTTPException(401, "cle API absente ou invalide (en-tete X-API-Key)")
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
 
 
 @app.get("/health")
