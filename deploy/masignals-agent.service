@@ -1,0 +1,19 @@
+[Unit]
+Description=MA-Signals agent (digest quasi temps réel — Claude Agent SDK)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adapter le chemin et l'utilisateur :
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+# Node (claude-code CLI) doit être dans le PATH du service :
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.agent_digest
+Restart=always
+RestartSec=30
+User=masignals
+
+[Install]
+WantedBy=multi-user.target

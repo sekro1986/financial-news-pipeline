@@ -75,6 +75,19 @@ class Settings(BaseSettings):
     llm_confidence_floor: int = 60  # sous ce niveau, l'enrichissement est ignore
     llm_timeout: float = 25.0
 
+    # --- Service agent SDK (digest quasi temps réel) — ma_signals/agent_digest.py ---
+    # Désactivé par défaut ; nécessite ANTHROPIC_API_KEY + claude-agent-sdk (+ Node).
+    agent_enabled: bool = False
+    agent_model: str = "claude-haiku-4-5"   # passer à un modèle Sonnet si besoin de finesse
+    agent_interval_seconds: int = 900        # cadence des cycles (aligné poller)
+    agent_min_score: int = 4                 # pré-score minimal pour soumettre un signal
+    agent_macro_interval_minutes: int = 60   # veille macro (recherche web) au plus 1x/h
+    agent_max_cycles_per_day: int = 120      # budget dur d'appels agent par jour
+    agent_max_turns: int = 8                 # tours agentiques max par run
+    agent_timeout: float = 240.0             # timeout d'un run complet (s)
+    agent_max_budget_usd: float = 0.25       # budget API max par run (garde-fou SDK)
+    agent_state_path: str = "./agent_state.json"
+
     # --- Alerting Telegram ---
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""

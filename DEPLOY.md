@@ -90,3 +90,36 @@ docker compose up -d --build          # Docker
 Par défaut l'API écoute sur le port 8000 de la VM. Pour y accéder à distance,
 mets un reverse-proxy (nginx/Caddy) avec TLS devant — ne l'expose pas en clair.
 ```
+
+## Service agent — digest quasi temps réel (Claude Agent SDK)
+
+Compile les news qui bougent les marchés : nouveaux signaux du pipeline + veille
+macro horaire par recherche web, jugés par un agent Claude qui n'envoie un flash
+Telegram QUE si ça vaut la peine. Voir `ma_signals/agent_digest.py`.
+
+```bash
+cd /opt/financial-news-pipeline
+# 1. Dépendances (Node >= 18 requis par le SDK)
+sudo apt-get install -y nodejs npm        # ou nvm
+sudo npm install -g @anthropic-ai/claude-code
+sudo -u masignals .venv/bin/pip install -r requirements-agent.txt
+
+# 2. Config (.env)
+#    ANTHROPIC_API_KEY=sk-ant-...
+#    AGENT_ENABLED=true
+#    AGENT_MODEL=claude-haiku-4-5          # ou un modèle Sonnet
+#    AGENT_MACRO_INTERVAL_MINUTES=60
+
+# 3. Test à blanc (un cycle, sans boucle)
+sudo -u masignals .venv/bin/python -m ma_signals.agent_digest --once
+
+# 4. Service
+sudo cp deploy/masignals-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now masignals-agent
+journalctl -u masignals-agent -f
+```
+
+Garde-fous : `AGENT_MAX_CYCLES_PER_DAY` (budget dur), cycles sans nouveaux signaux
+ni macro due = gratuits (aucun appel API), curseur + dédup macro persistés dans
+`agent_state.json`, sortie non-JSON => aucun envoi.
