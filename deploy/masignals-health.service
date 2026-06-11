@@ -1,0 +1,9 @@
+[Unit]
+Description=MA-Signals healthcheck (poller vivant + sources muettes)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.health --send
+User=masignals

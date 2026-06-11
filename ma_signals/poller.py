@@ -17,6 +17,7 @@ from .classifier import family_of
 from .collectors import build_enabled
 from .config import settings
 from .db import SessionLocal, init_db
+from .health import write_heartbeat
 from .models import Signal
 from .pipeline import process_items
 from .correlate import mark_unexplained_moves
@@ -90,6 +91,7 @@ def safe_cycle() -> None:
     try:
         run_cycle()
         _fail_streak = 0
+        write_heartbeat()  # vu par ma_signals.health (timer externe)
     except Exception:  # noqa: BLE001
         _fail_streak += 1
         log.exception("cycle en echec (%d consecutif(s))", _fail_streak)

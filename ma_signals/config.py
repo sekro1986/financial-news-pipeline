@@ -95,6 +95,21 @@ class Settings(BaseSettings):
     # --- Alerting Slack ---
     slack_webhook_url: str = ""
 
+    # --- Sauvegarde SQLite (python -m ma_signals.backup, timer quotidien) ---
+    backup_dir: str = "./backups"
+    backup_keep: int = 14   # nombre de sauvegardes conservees (rotation)
+
+    # --- Healthcheck (python -m ma_signals.health, timer 15 min) ---
+    # Le poller touche heartbeat_path a chaque cycle reussi ; au-dela de
+    # heartbeat_stale_minutes sans cycle, alerte (poller arrete/bloque).
+    heartbeat_path: str = "./heartbeat.txt"
+    heartbeat_stale_minutes: int = 30
+    # Sources 'wire' censees produire en continu (PAS prices/screener/adhoc_ir
+    # qui n'emettent que sur evenement) : muettes au-dela de N heures -> alerte.
+    monitored_sources: str = "sec_edgar,rns_uk,press_rss,mfn"
+    source_silence_hours: int = 24
+    health_state_path: str = "./health_state.json"
+
     # --- API REST : cle d'acces (en-tete X-API-Key) ---
     # Vide = API ouverte (acceptable seulement si elle ecoute en 127.0.0.1).
     # Definie = tous les endpoints sauf /health exigent l'en-tete X-API-Key.
