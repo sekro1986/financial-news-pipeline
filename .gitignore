@@ -13,3 +13,9 @@ disclosure_feeds.txt
 
 # Watchlist live (créée depuis watchlist.yaml.example)
 watchlist.yaml
+
+# Etat local runtime (healthcheck, agent) + sauvegardes
+heartbeat.txt
+health_state.json
+agent_state.json
+backups/
