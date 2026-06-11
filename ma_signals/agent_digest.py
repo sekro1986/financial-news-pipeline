@@ -182,8 +182,15 @@ def parse_agent_json(text: str) -> dict | None:
 # --------------------------------------------------------------------- agent
 async def _run_agent(prompt: str) -> tuple[str, float | None]:
     """Un run agentique. Import paresseux : le module reste importable sans SDK."""
+    import os
+
     from claude_agent_sdk import (AssistantMessage, ClaudeAgentOptions,
                                   ResultMessage, TextBlock, query)
+
+    # pydantic lit .env dans settings mais n'exporte rien : le sous-processus
+    # CLI du SDK a besoin de la clé dans l'environnement.
+    if settings.anthropic_api_key:
+        os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)
 
     options = ClaudeAgentOptions(
         system_prompt=_SYSTEM,
