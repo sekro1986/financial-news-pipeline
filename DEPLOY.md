@@ -72,6 +72,18 @@ docker compose logs -f poller
 curl "http://localhost:8000/signals?min_score=8&limit=10"
 ```
 
+### Sécurité de l'API
+
+Par défaut l'API écoute en `127.0.0.1` (service systemd) : rien n'est exposé hors
+de la VM. Pour y accéder depuis ton poste : `ssh -L 8000:localhost:8000 ta-vm`.
+Si tu dois l'exposer (reverse proxy, 0.0.0.0), définis `API_KEY` dans le `.env`
+(`openssl rand -hex 32`) puis interroge avec l'en-tête :
+
+```bash
+curl -H "X-API-Key: $API_KEY" "http://localhost:8000/signals?limit=5"
+```
+
+
 Tu dois recevoir un message Telegram dès qu'un signal de score ≥ `ALERT_MIN_SCORE`
 est détecté. Pour un test immédiat du canal sans attendre un vrai événement,
 baisse temporairement `ALERT_MIN_SCORE=2`, relance un cycle, puis remets la valeur.

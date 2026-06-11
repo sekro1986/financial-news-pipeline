@@ -95,6 +95,11 @@ class Settings(BaseSettings):
     # --- Alerting Slack ---
     slack_webhook_url: str = ""
 
+    # --- API REST : cle d'acces (en-tete X-API-Key) ---
+    # Vide = API ouverte (acceptable seulement si elle ecoute en 127.0.0.1).
+    # Definie = tous les endpoints sauf /health exigent l'en-tete X-API-Key.
+    api_key: str = ""
+
     # --- Presse : requêtes Google News (séparées par |) ---
     press_queries: str = (
         '"possible offer" OR takeover OR "takeover approach" when:3d|'

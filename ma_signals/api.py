@@ -9,14 +9,27 @@ Endpoints :
 from __future__ import annotations
 
 import datetime as dt
+import secrets
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from sqlalchemy import func, select
 
+from .config import settings
 from .db import SessionLocal, init_db
 from .models import Signal
 
 app = FastAPI(title="MA-Signals API", version="1.0.0")
+
+
+def require_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> None:
+    """Si API_KEY est definie dans la conf, exige l'en-tete X-API-Key correspondant.
+
+    /health reste ouvert (sondes de supervision). Comparaison en temps constant.
+    """
+    if not settings.api_key:
+        return  # API ouverte (mode historique) : ne s'utilise qu'en 127.0.0.1
+    if not (x_api_key and secrets.compare_digest(x_api_key, settings.api_key)):
+        raise HTTPException(401, "cle API absente ou invalide (en-tete X-API-Key)")
 
 
 @app.on_event("startup")
@@ -29,7 +42,7 @@ def health() -> dict:
     return {"status": "ok", "time": dt.datetime.now(dt.timezone.utc).isoformat()}
 
 
-@app.get("/signals")
+@app.get("/signals", dependencies=[Depends(require_api_key)])
 def list_signals(
     source: str | None = None,
     event_type: str | None = None,
@@ -62,7 +75,7 @@ def list_signals(
         return {"total": total, "count": len(rows), "items": [r.to_dict() for r in rows]}
 
 
-@app.get("/signals/{signal_id}")
+@app.get("/signals/{signal_id}", dependencies=[Depends(require_api_key)])
 def get_signal(signal_id: int) -> dict:
     with SessionLocal() as s:
         obj = s.get(Signal, signal_id)
@@ -71,7 +84,7 @@ def get_signal(signal_id: int) -> dict:
         return obj.to_dict()
 
 
-@app.get("/stats")
+@app.get("/stats", dependencies=[Depends(require_api_key)])
 def stats() -> dict:
     with SessionLocal() as s:
         by_source = dict(s.execute(select(Signal.source, func.count()).group_by(Signal.source)).all())
