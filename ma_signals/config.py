@@ -114,6 +114,15 @@ class Settings(BaseSettings):
     source_silence_hours: int = 24
     health_state_path: str = "./health_state.json"
 
+    # --- Calibration auto des familles d'alerte (python -m ma_signals.calibrate) ---
+    # Quand alerts_enabled=true, ALERT_ONLY_FAMILIES vide et calibration_enabled=true,
+    # le poller n'alerte que les familles OUVERTES par la calibration (scorecard).
+    calibration_enabled: bool = False
+    calibration_open_rate: int = 65    # %% de fiabilite pour OUVRIR une famille
+    calibration_close_rate: int = 50   # sous ce niveau, une famille ouverte se REFERME
+    calibration_min_graded: int = 30   # verdicts grades minimum pour juger
+    calibration_state_path: str = "./calibration.json"
+
     # --- Autofeed watchlist (python -m ma_signals.autofeed, timer hebdo) ---
     autofeed_window_days: int = 14    # fenetre d'observation des candidates
     autofeed_min_stories: int = 3     # histoires distinctes minimum pour candidater

@@ -71,6 +71,11 @@ def run_cycle(seed: bool = False) -> int:
     if repeats:
         log.info("cycle: %d repetition(s) de la meme histoire mise(s) en sourdine", len(repeats))
     allow = settings.alert_only_family_list
+    if not allow and settings.calibration_enabled:
+        # Reouverture pilotee par les donnees : familles ouvertes par la
+        # calibration (scorecard). Etat mis a jour par le job quotidien.
+        from .calibrate import open_families
+        allow = sorted(open_families())
     if allow:   # reouverture selective : on n'alerte que certaines familles
         to_send = [s for s in pending if family_of(s.event_type) in allow]
         to_silence = repeats + [s for s in pending if family_of(s.event_type) not in allow]
