@@ -17,7 +17,10 @@ import datetime as dt
 
 import feedparser
 
+import httpx
+
 from ..config import settings
+from .. import feedhealth
 from ..schema import RawItem
 from .base import Collector
 
@@ -50,9 +53,17 @@ class DisclosuresCollector(Collector):
         for url in self.feeds():
             try:
                 resp = self._get(url)
+            except httpx.HTTPStatusError as exc:
+                feedhealth.record(url, self.name, exc.response.status_code, ok=False)
+                continue
             except Exception:
+                feedhealth.record(url, self.name, 0, ok=False)
                 continue
             feed = feedparser.parse(resp.content)
+            newest = max((dt.datetime(*e.published_parsed[:6], tzinfo=dt.timezone.utc)
+                          for e in feed.entries if getattr(e, "published_parsed", None)),
+                         default=None)
+            feedhealth.record(url, self.name, resp.status_code, ok=True, newest_item=newest)
             for e in feed.entries:
                 guid = e.get("id", e.get("link", e.get("title", "")))
                 if not guid or guid in seen:

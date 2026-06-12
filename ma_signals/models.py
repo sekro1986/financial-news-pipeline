@@ -167,6 +167,26 @@ class WeeklyAudit(Base):
     details: Mapped[str] = mapped_column(Text, default="")        # JSON lisible
 
 
+class FeedHealth(Base):
+    """Sante de CHAQUE flux RSS individuel (rss_custom, disclosures).
+
+    Le healthcheck par source ne voit pas un flux mort au milieu d'une source
+    qui produit encore (cas rss.app 402 du 12/06/2026 : rss_custom donnait
+    115 items, deux flux etaient morts depuis des jours)."""
+
+    __tablename__ = "feed_health"
+    __table_args__ = (UniqueConstraint("url", name="uq_feed_health_url"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(32), default="", index=True)
+    last_status: Mapped[int] = mapped_column(Integer, default=0)      # HTTP, 0 = erreur reseau
+    fail_streak: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    last_ok_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    last_item_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class SignalOutcome(Base):
     """Resultat mesure d'un signal : impact reel sur le cours + verdict de correlation.
 

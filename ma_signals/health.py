@@ -114,6 +114,34 @@ def silent_sources(now: dt.datetime) -> list[tuple[str, float]]:
     return out
 
 
+# ------------------------------------------------------------- flux individuels
+def sick_feeds(now: dt.datetime) -> list[tuple[str, str]]:
+    """Flux individuellement malades : [(url, raison), ...].
+
+    Malade = en échec consécutif >= feed_fail_threshold (ex. rss.app 402),
+    OU joignable mais sans aucun item frais depuis feed_silence_hours.
+    """
+    from .db import SessionLocal
+    from .models import FeedHealth
+
+    out: list[tuple[str, str]] = []
+    with SessionLocal() as s:
+        rows = list(s.query(FeedHealth).all())
+    for r in rows:
+        if (r.fail_streak or 0) >= settings.feed_fail_threshold:
+            code = f"HTTP {r.last_status}" if r.last_status else "erreur réseau"
+            out.append((r.url, f"{code} ×{r.fail_streak}"))
+            continue
+        last_item = r.last_item_at
+        if last_item is not None:
+            if last_item.tzinfo is None:
+                last_item = last_item.replace(tzinfo=dt.timezone.utc)
+            silent_h = (now - last_item).total_seconds() / 3600.0
+            if silent_h > settings.feed_silence_hours:
+                out.append((r.url, f"aucun item frais depuis {silent_h:.0f} h"))
+    return out
+
+
 # ------------------------------------------------------------------ état/anti-spam
 def load_state() -> dict:
     p = Path(settings.health_state_path)
@@ -122,7 +150,7 @@ def load_state() -> dict:
             return json.loads(p.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             pass
-    return {"poller_down": False, "silent": []}
+    return {"poller_down": False, "silent": [], "sick_feeds": []}
 
 
 def save_state(state: dict) -> None:
@@ -159,6 +187,20 @@ def run_check(now: dt.datetime | None = None, send: bool = False) -> list[str]:
     if recovered:
         messages.append("🔊 MA-Signals : source(s) de nouveau active(s) : " + ", ".join(recovered))
     state["silent"] = silent_names
+
+    # 3) flux individuels (rss_custom / disclosures)
+    sick_now = sick_feeds(now)
+    sick_urls = sorted(u for u, _ in sick_now)
+    prev_sick = set(state.get("sick_feeds", []))
+    new_sick = [(u, why) for u, why in sick_now if u not in prev_sick]
+    healed = sorted(prev_sick - set(sick_urls))
+    if new_sick:
+        det = " ; ".join(f"{u} ({why})" for u, why in sorted(new_sick))
+        messages.append(f"🩺 MA-Signals : flux RSS malade(s) : {det} — "
+                        "à corriger ou commenter dans feeds.txt / disclosure_feeds.txt")
+    if healed:
+        messages.append("💚 MA-Signals : flux rétabli(s) : " + ", ".join(healed))
+    state["sick_feeds"] = sick_urls
 
     save_state(state)
     if send and messages:

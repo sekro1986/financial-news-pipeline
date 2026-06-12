@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     monitored_sources: str = "sec_edgar,rns_uk,press_rss,mfn"
     source_silence_hours: int = 24
     health_state_path: str = "./health_state.json"
+    # Sante par FLUX individuel (rss_custom/disclosures) : un flux en echec
+    # feed_fail_threshold fois de suite (ex rss.app 402), ou sans aucun item
+    # frais depuis feed_silence_hours, est signale.
+    feed_fail_threshold: int = 3
+    feed_silence_hours: int = 72
 
     # --- Calibration auto des familles d'alerte (python -m ma_signals.calibrate) ---
     # Quand alerts_enabled=true, ALERT_ONLY_FAMILIES vide et calibration_enabled=true,
