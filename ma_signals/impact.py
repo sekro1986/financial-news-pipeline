@@ -169,6 +169,12 @@ def yahoo_search_symbol(company: str) -> str:
     except Exception as exc:  # noqa: BLE001
         log.debug("yahoo_search %s: %s", company, exc)
         return ""
+    # Places SECONDAIRES (cross-listings) : bourses regionales allemandes,
+    # Vienne, IOB Londres... On ne les retient que faute de mieux : la cotation
+    # primaire (Orange -> ORA.PA, pas XO1.F) a la liquidite et le bon fuseau.
+    secondary_suffixes = (".F", ".HM", ".BE", ".MU", ".DU", ".SG", ".HA",
+                          ".STU", ".VI", ".IL", ".PNK")
+    fallback = ""
     for q in quotes:
         if q.get("quoteType") != "EQUITY" or not q.get("symbol"):
             continue
@@ -176,8 +182,11 @@ def yahoo_search_symbol(company: str) -> str:
         # Prefixe a la frontiere de MOT : 'orange' matche 'Orange S.A.' mais
         # PAS 'Orangekloud Technology' (vu en dry-run autofeed du 12/06).
         if nm == norm or nm.startswith(norm + " "):
-            return q["symbol"]
-    return ""
+            sym = q["symbol"]
+            if not sym.upper().endswith(secondary_suffixes):
+                return sym          # cotation primaire (ou ADR/US) : on prend
+            fallback = fallback or sym  # secondaire : seulement faute de mieux
+    return fallback
 
 
 def price_reaction(symbol: str, signal_date: dt.date, price_fn=None) -> dict | None:

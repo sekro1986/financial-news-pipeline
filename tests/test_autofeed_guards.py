@@ -48,3 +48,21 @@ def test_nom_generique_seul_jamais_candidat():
         s.commit()
     added, _ = autofeed.autofeed(resolve_fn=lambda name: "COF")
     assert added == []  # 'Capital' seul = artefact d'extraction, pas une societe
+
+
+def test_cotation_primaire_preferee_aux_places_secondaires(monkeypatch):
+    _fake_yahoo(monkeypatch, [
+        {"quoteType": "EQUITY", "symbol": "XO1.F",
+         "shortname": "Orange", "longname": "Orange S.A."},      # Francfort d'abord
+        {"quoteType": "EQUITY", "symbol": "ORA.PA",
+         "shortname": "Orange", "longname": "Orange S.A."},
+    ])
+    assert impact.yahoo_search_symbol("Orange") == "ORA.PA"
+
+
+def test_place_secondaire_acceptee_faute_de_mieux(monkeypatch):
+    _fake_yahoo(monkeypatch, [
+        {"quoteType": "EQUITY", "symbol": "NS7.HM",
+         "shortname": "Northern Star", "longname": "Northern Star Plc"},
+    ])
+    assert impact.yahoo_search_symbol("Northern Star") == "NS7.HM"
