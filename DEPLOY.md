@@ -92,6 +92,17 @@ alerte sur Telegram si le poller n'a plus de cycle réussi depuis 30 min
 produit depuis 24 h (`SOURCE_SILENCE_HOURS`) — une alerte par épisode, plus un
 message de rétablissement.
 
+### Tester un changement de règles (replay)
+
+Avant de déployer une modification de `classifier.py` :
+
+```bash
+sudo -u masignals .venv/bin/python -m ma_signals.replay --days 30
+```
+
+Le rapport liste les alertes gagnées/perdues par rapport à l'historique, et
+croise avec les verdicts d'impact (perdre un signal « confirmé » = régression).
+
 ### Sécurité de l'API
 
 Par défaut l'API écoute en `127.0.0.1` (service systemd) : rien n'est exposé hors
