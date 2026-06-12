@@ -114,6 +114,12 @@ class Settings(BaseSettings):
     source_silence_hours: int = 24
     health_state_path: str = "./health_state.json"
 
+    # --- Autofeed watchlist (python -m ma_signals.autofeed, timer hebdo) ---
+    autofeed_window_days: int = 14    # fenetre d'observation des candidates
+    autofeed_min_stories: int = 3     # histoires distinctes minimum pour candidater
+    autofeed_max_adds: int = 5        # plafond d'ajouts par run
+    autofeed_prune_days: int = 90     # entree auto muette depuis N jours -> desactivee
+
     # --- API REST : cle d'acces (en-tete X-API-Key) ---
     # Vide = API ouverte (acceptable seulement si elle ecoute en 127.0.0.1).
     # Definie = tous les endpoints sauf /health exigent l'en-tete X-API-Key.

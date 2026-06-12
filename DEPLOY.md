@@ -92,6 +92,21 @@ alerte sur Telegram si le poller n'a plus de cycle réussi depuis 30 min
 produit depuis 24 h (`SOURCE_SILENCE_HOURS`) — une alerte par épisode, plus un
 message de rétablissement.
 
+### Watchlist auto-alimentée
+
+```bash
+sudo cp deploy/masignals-autofeed.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now masignals-autofeed.timer
+
+# Essai à blanc (rien n'est écrit) :
+sudo -u masignals .venv/bin/python -m ma_signals.autofeed --dry-run
+```
+
+Chaque samedi : les sociétés revenant dans >= 3 histoires distinctes sur 14 j,
+hors watchlist et au ticker résolu, sont ajoutées (origin=auto, plafond 5/run) ;
+les entrées auto muettes depuis 90 j sont désactivées. Récap sur Telegram.
+Les entrées manuelles ne sont jamais touchées.
+
 ### Après mise à jour de la dédup (story-key par famille)
 
 Le format des `story_key` a changé (famille au lieu du type). Pour réécrire

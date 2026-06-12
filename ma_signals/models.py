@@ -108,6 +108,7 @@ class WatchlistEntry(Base):
     country: Mapped[str] = mapped_column(String(4), default="")
     ir_adhoc_url: Mapped[str] = mapped_column(Text, default="")        # page ad-hoc IR
     active: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    origin: Mapped[str] = mapped_column(String(8), default="")        # '' = manuel | 'auto' = autofeed
     notes: Mapped[str] = mapped_column(Text, default="")
 
     def to_dict(self) -> dict:

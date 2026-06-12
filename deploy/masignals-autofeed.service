@@ -1,0 +1,9 @@
+[Unit]
+Description=MA-Signals autofeed watchlist (candidates recurrentes + prune)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/financial-news-pipeline
+EnvironmentFile=/opt/financial-news-pipeline/.env
+ExecStart=/opt/financial-news-pipeline/.venv/bin/python -m ma_signals.autofeed --send
+User=masignals

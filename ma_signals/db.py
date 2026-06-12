@@ -24,7 +24,13 @@ def _ensure_columns() -> None:
     deja presente. On ajoute donc story_key a la main si elle manque (SQLite et
     autres backends supportent ADD COLUMN)."""
     insp = inspect(engine)
-    if "signals" not in insp.get_table_names():
+    tables = insp.get_table_names()
+    if "watchlist" in tables:
+        wcols = {c["name"] for c in insp.get_columns("watchlist")}
+        if "origin" not in wcols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE watchlist ADD COLUMN origin VARCHAR(8) DEFAULT ''"))
+    if "signals" not in tables:
         return
     cols = {c["name"] for c in insp.get_columns("signals")}
     with engine.begin() as conn:

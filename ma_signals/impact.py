@@ -173,7 +173,9 @@ def yahoo_search_symbol(company: str) -> str:
         if q.get("quoteType") != "EQUITY" or not q.get("symbol"):
             continue
         nm = _norm(f"{q.get('shortname','')} {q.get('longname','')}")
-        if nm.startswith(norm):   # nom officiel commence par le nom cherché -> identité fiable
+        # Prefixe a la frontiere de MOT : 'orange' matche 'Orange S.A.' mais
+        # PAS 'Orangekloud Technology' (vu en dry-run autofeed du 12/06).
+        if nm == norm or nm.startswith(norm + " "):
             return q["symbol"]
     return ""
 
