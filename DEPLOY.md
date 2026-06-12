@@ -92,6 +92,15 @@ alerte sur Telegram si le poller n'a plus de cycle réussi depuis 30 min
 produit depuis 24 h (`SOURCE_SILENCE_HOURS`) — une alerte par épisode, plus un
 message de rétablissement.
 
+### Après mise à jour de la dédup (story-key par famille)
+
+Le format des `story_key` a changé (famille au lieu du type). Pour réécrire
+l'historique et fusionner rétroactivement les doublons :
+
+```bash
+sudo -u masignals .venv/bin/python -m ma_signals.backfill
+```
+
 ### Tester un changement de règles (replay)
 
 Avant de déployer une modification de `classifier.py` :

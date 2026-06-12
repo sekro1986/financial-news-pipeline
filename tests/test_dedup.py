@@ -18,12 +18,19 @@ def test_source_suffix_stripped():
 def test_same_company_event_same_key():
     a = story_key("Micromeritics", "merger_agt", "Spectris agrees to acquire Micromeritics - Yahoo")
     b = story_key("Micromeritics", "merger_agt", "Spectris to acquire Micromeritics, confirmed - Reuters")
-    assert a == b == "co:micromeritics|merger_agt"
+    assert a == b == "co:micromeritics|mna"
 
 
-def test_different_event_different_key():
-    a = story_key("Vodafone", "merger_agt", "x")
-    b = story_key("Vodafone", "stake", "x")
+def test_same_family_same_key():
+    # possible_offer / tender_offer / merger_agt = la MEME saga M&A (cas MPS du 08/06)
+    a = story_key("Monte dei Paschi", "possible_offer", "x")
+    b = story_key("Monte dei Paschi", "tender_offer", "y")
+    assert a == b
+
+
+def test_different_family_different_key():
+    a = story_key("Vodafone", "merger_agt", "x")        # famille mna
+    b = story_key("Vodafone", "profit_warning", "x")    # famille earnings
     assert a != b
 
 

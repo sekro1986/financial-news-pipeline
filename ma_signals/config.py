@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     alert_only_families: str = ""
 
     # --- Garde-fous anti-spam ---
+    # Filet anti-doublon a l'ENVOI : si une alerte pour la meme (societe
+    # normalisee, famille) est partie il y a moins de N heures, la nouvelle
+    # est mise en sourdine au lieu d'etre renvoyee. 0 = desactive.
+    alert_cooldown_hours: int = 24
     max_alerts_per_cycle: int = 25
     alert_batch_size: int = 8
     telegram_send_delay: float = 1.5

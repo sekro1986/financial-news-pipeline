@@ -19,6 +19,7 @@ from .config import settings
 from .db import SessionLocal, init_db
 from .health import write_heartbeat
 from .models import Signal
+from .dedup import split_repeats
 from .pipeline import process_items
 from .correlate import mark_unexplained_moves
 
@@ -64,12 +65,17 @@ def run_cycle(seed: bool = False) -> int:
         log.info("cycle: MODE OBSERVATION -> %d signaux captés en sourdine (aucune alerte live)",
                  len(pending))
         return 0
+    # Filet anti-doublon : une histoire deja alertee dans la fenetre de
+    # cooldown (ou racontee 2x dans ce lot) part en sourdine, pas sur Telegram.
+    pending, repeats = split_repeats(pending)
+    if repeats:
+        log.info("cycle: %d repetition(s) de la meme histoire mise(s) en sourdine", len(repeats))
     allow = settings.alert_only_family_list
     if allow:   # reouverture selective : on n'alerte que certaines familles
         to_send = [s for s in pending if family_of(s.event_type) in allow]
-        to_silence = [s for s in pending if family_of(s.event_type) not in allow]
+        to_silence = repeats + [s for s in pending if family_of(s.event_type) not in allow]
     else:
-        to_send, to_silence = pending, []
+        to_send, to_silence = pending, repeats
     dispatch(to_send)
     silence_pending(to_silence)
     log.info("cycle: %d alertes envoyées, %d en sourdine (plafond/cycle: %d)",

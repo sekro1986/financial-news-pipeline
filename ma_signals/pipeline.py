@@ -9,7 +9,7 @@ from .classifier import classify
 from .config import settings
 from .db import get_session
 from .classifier import family_of, family_threshold
-from .dedup import story_key
+from .dedup import same_story_company, story_key
 from .extract import clean_html, guess_company, publisher_name, strip_source_suffix
 from .watchlist import active_entries
 from . import llm
@@ -145,9 +145,21 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
             if kept is None or c.score > kept.score:
                 best_by_story[c.story_key] = c
 
+        # --- Etape 2c : fusion FLOUE intra-cycle ---
+        # Meme famille + noms de societe qui se recouvrent (tokens) = meme
+        # histoire, meme si l'extraction a donne des variantes ('Monte dei
+        # Paschi' / 'Banca Monte dei Paschi'). On garde le meilleur score.
+        merged: list[_Candidate] = []
+        for c in sorted(best_by_story.values(), key=lambda x: x.score, reverse=True):
+            dup = next((k for k in merged
+                        if family_of(k.event_type) == family_of(c.event_type)
+                        and same_story_company(k.company, c.company)), None)
+            if dup is None:
+                merged.append(c)
+
         # --- Etape 3 : dedup "histoire" inter-cycles (fenetre glissante) ---
         cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=settings.story_window_hours)
-        for c in best_by_story.values():
+        for c in merged:
             if settings.story_dedup:
                 already = (
                     session.query(Signal)
@@ -156,6 +168,17 @@ def process_items(items: list[RawItem], seed: bool = False) -> list[Signal]:
                 )
                 if already:
                     continue  # meme histoire deja captee recemment (autre media) -> skip
+                # Verif FLOUE inter-cycles : meme famille, societe qui se recouvre.
+                fam = family_of(c.event_type)
+                if c.company:
+                    recent = (
+                        session.query(Signal.company)
+                        .filter(Signal.story_key.like(f"co:%|{fam}"),
+                                Signal.detected_at >= cutoff)
+                        .limit(500).all()
+                    )
+                    if any(same_story_company(c.company, r[0]) for r in recent):
+                        continue  # variante du nom d'une histoire deja captee
 
             threshold = family_threshold(family_of(c.event_type))
             is_alertable = c.score >= threshold
