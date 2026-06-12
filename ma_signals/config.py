@@ -119,6 +119,11 @@ class Settings(BaseSettings):
     feed_fail_threshold: int = 3
     feed_silence_hours: int = 72
 
+    # --- Price marks : cotation a t0 puis a horizons fixes (courbe de reaction) ---
+    price_marks_enabled: bool = True
+    price_mark_horizons: str = "1,4,8,24"     # heures apres t0 (CSV)
+    price_marks_max_resolve_per_cycle: int = 10  # budget recherche Yahoo (hors watchlist)
+
     # --- Calibration auto des familles d'alerte (python -m ma_signals.calibrate) ---
     # Quand alerts_enabled=true, ALERT_ONLY_FAMILIES vide et calibration_enabled=true,
     # le poller n'alerte que les familles OUVERTES par la calibration (scorecard).
@@ -210,6 +215,10 @@ class Settings(BaseSettings):
     @property
     def source_deny_list(self) -> list[str]:
         return [x.strip().lower() for x in self.source_denylist.split(",") if x.strip()]
+
+    @property
+    def price_mark_horizon_list(self) -> list[str]:
+        return [h.strip() for h in self.price_mark_horizons.split(",") if h.strip()]
 
     @property
     def alert_only_family_list(self) -> list[str]:

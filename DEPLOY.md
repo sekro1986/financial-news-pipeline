@@ -92,6 +92,23 @@ alerte sur Telegram si le poller n'a plus de cycle réussi depuis 30 min
 produit depuis 24 h (`SOURCE_SILENCE_HOURS`) — une alerte par épisode, plus un
 message de rétablissement.
 
+### Courbe de réaction intraday (price marks)
+
+Chaque signal alertable résoluble est instrumenté : cours à t0 puis marques à
++1h/+4h/+8h/+24h (`PRICE_MARK_HORIZONS`), capturées par le cycle du poller.
+
+```bash
+sudo -u masignals .venv/bin/python -m ma_signals.reaction --days 30
+```
+
+### Calibration automatique des alertes
+
+Quand tu veux sortir du mode observation en t'appuyant sur les données :
+`ALERTS_ENABLED=true` + `CALIBRATION_ENABLED=true` dans le `.env`, puis restart
+du poller. Le job quotidien ouvre les familles à >= 65 %% de fiabilité
+(>= 30 verdicts / 30 j) et referme sous 50 %% — notification Telegram à chaque
+changement. Statut : `python -m ma_signals.calibrate`.
+
 ### Watchlist auto-alimentée
 
 ```bash

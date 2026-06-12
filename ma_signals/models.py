@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 
 from sqlalchemy import (
+    Float,
     DateTime,
     Integer,
     String,
@@ -165,6 +166,26 @@ class WeeklyAudit(Base):
     n_missed: Mapped[int] = mapped_column(Integer, default=0)
     capture_rate: Mapped[int] = mapped_column(Integer, default=0) # % (capté/alerté sur movers)
     details: Mapped[str] = mapped_column(Text, default="")        # JSON lisible
+
+
+class PriceMark(Base):
+    """Cotation d'un titre a t0 (detection du signal) puis a horizons fixes.
+
+    Matiere premiere de la courbe de reaction intraday par type d'evenement
+    (ma_signals.reaction). Une marque non capturee a captured_at NULL et est
+    retentee a chaque cycle tant qu'elle est due."""
+
+    __tablename__ = "price_marks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signal_id: Mapped[int] = mapped_column(Integer, index=True)
+    symbol: Mapped[str] = mapped_column(String(32), index=True, default="")
+    label: Mapped[str] = mapped_column(String(8), default="")          # t0, 1h, 4h, 8h, 24h
+    due_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    captured_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    price: Mapped[float | None] = mapped_column(Float)
+    pct_vs_t0: Mapped[float | None] = mapped_column(Float)
+    market_state: Mapped[str] = mapped_column(String(8), default="")   # open/closed/unknown
 
 
 class FeedHealth(Base):

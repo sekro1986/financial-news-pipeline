@@ -21,6 +21,7 @@ from .health import write_heartbeat
 from .models import Signal
 from .dedup import split_repeats
 from .pipeline import process_items
+from . import pricemarks
 from .correlate import mark_unexplained_moves
 
 logging.basicConfig(
@@ -44,7 +45,15 @@ def run_cycle(seed: bool = False) -> int:
         c.close()
 
     log.info("cycle: %d items collectes au total", len(all_items))
-    process_items(all_items, seed=seed)
+    new_signals = process_items(all_items, seed=seed)
+    if not seed:
+        # Courbe de reaction : t0 sur les nouveaux signaux alertables + capture
+        # des marques (+1h/+4h/...) arrivees a echeance. Best-effort.
+        try:
+            pricemarks.schedule_marks(new_signals)
+            pricemarks.capture_due()
+        except Exception:  # noqa: BLE001
+            log.exception("price marks: echec non bloquant")
     if seed:
         # On annote quand meme les mouvements inexpliques en silence (sans alerter).
         mark_unexplained_moves(seed=True)
